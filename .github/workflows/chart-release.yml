@@ -25,6 +25,20 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Initialize gh-pages branch
+        run: |
+          git fetch origin
+          if ! git show-ref --quiet refs/remotes/origin/gh-pages; then
+            echo "gh-pages branch not found. Creating it..."
+            git checkout --orphan gh-pages
+            git rm -rf .
+            echo "Helm repository for Freezo" > index.html
+            git add index.html
+            git commit -m "Initialize gh-pages branch"
+            git push origin gh-pages
+            git checkout main
+          fi
+
       - name: Install Helm
         uses: azure/setup-helm@v4
 
