@@ -1,0 +1,41 @@
+backend:
+  replicaCount: 1
+  image:
+    repository: freezo-backend
+    pullPolicy: IfNotPresent
+    # tag: "..."
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: freezo-frontend
+    pullPolicy: IfNotPresent
+    # tag: "..."
+
+gateway:
+  enabled: false
+  name: gateway
+  namespace: default
+  hostname: freezer.example.com
+
+service:
+  type: ClusterIP
+  port: 80
+  frontendPort: 80
+  backendPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+
+persistence:
+  enabled: true
+  size: 1Gi
+  accessMode: ReadWriteOnce
+  storageClass: ""

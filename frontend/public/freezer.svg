@@ -1,0 +1,24 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06B6D4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <path d="M32 4V60" stroke="url(#grad)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M4 32H60" stroke="url(#grad)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M12.2 12.2L51.8 51.8" stroke="url(#grad)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M12.2 51.8L51.8 12.2" stroke="url(#grad)" stroke-width="5" stroke-linecap="round"/>
+  
+  <path d="M32 14L40 22" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 14L24 22" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <path d="M32 50L40 42" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 50L24 42" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <path d="M14 32L22 40" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M14 32L22 24" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <path d="M50 32L42 40" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M50 32L42 24" stroke="url(#grad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

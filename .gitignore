@@ -1,0 +1,23 @@
+# General
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Go / Backend
+backend/server
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/vendor/
+backend/freezer.db
+
+# SQLite
+*.db
+*.db-journal
+
+
+# Docker
+.docker/
