@@ -1,4 +1,4 @@
-# Freezer Tracker
+# Freezo
 
 A simple, self-hosted application to track food inventory in your freezers. Built with Go, Flutter, and SQLite, designed for homelab environments.
 
