@@ -58,6 +58,7 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: 'backend'
+          scanners: 'vuln,secret'
           hide-progress: true
           format: 'table'
           output: 'trivy-backend-fs.txt'
@@ -65,24 +66,12 @@ jobs:
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
 
-      - name: Post Backend FS Trivy Verification Results
+      - name: Upload Backend FS Trivy Report
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/upload-artifact@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            try {
-              const output = fs.readFileSync('trivy-backend-fs.txt', 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## Backend FS Vulnerability Scan Results\n\n\`\`\`\n${output}\n\`\`\``
-              })
-            } catch (error) {
-              console.log('No trivy report found or error reading it');
-            }
+          name: trivy-backend-fs
+          path: trivy-backend-fs.txt
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
@@ -90,29 +79,18 @@ jobs:
           image-ref: '${{ env.IMAGE_BASE }}-backend:pr-${{ github.event.number }}'
           format: 'table'
           output: 'trivy-backend-image.txt'
+          scanners: 'vuln,secret'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      - name: Post Backend Image Trivy Verification Results
+      - name: Upload Backend Image Trivy Report
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/upload-artifact@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            try {
-              const output = fs.readFileSync('trivy-backend-image.txt', 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## Backend Image Vulnerability Scan Results\n\n\`\`\`\n${output}\n\`\`\``
-              })
-            } catch (error) {
-              console.log('No trivy report found or error reading it');
-            }
+          name: trivy-backend-image
+          path: trivy-backend-image.txt
 
   build-frontend:
     name: Build Frontend (Dry Run)
@@ -138,6 +116,7 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: 'frontend'
+          scanners: 'vuln,secret'
           hide-progress: true
           format: 'table'
           output: 'trivy-frontend-fs.txt'
@@ -145,24 +124,12 @@ jobs:
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
 
-      - name: Post Frontend FS Trivy Verification Results
+      - name: Upload Frontend FS Trivy Report
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/upload-artifact@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            try {
-              const output = fs.readFileSync('trivy-frontend-fs.txt', 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## Frontend FS Vulnerability Scan Results\n\n\`\`\`\n${output}\n\`\`\``
-              })
-            } catch (error) {
-              console.log('No trivy report found or error reading it');
-            }
+          name: trivy-frontend-fs
+          path: trivy-frontend-fs.txt
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
@@ -170,26 +137,72 @@ jobs:
           image-ref: '${{ env.IMAGE_BASE }}-frontend:pr-${{ github.event.number }}'
           format: 'table'
           output: 'trivy-frontend-image.txt'
+          scanners: 'vuln,secret'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      - name: Post Frontend Image Trivy Verification Results
+      - name: Upload Frontend Image Trivy Report
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-frontend-image
+          path: trivy-frontend-image.txt
+
+  report-security:
+    name: Post Security Report
+    needs: [build-backend, build-frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Trivy Reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: trivy-*
+          path: reports
+          merge-multiple: true
+
+      - name: Post Consolidated Security Report
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            try {
-              const output = fs.readFileSync('trivy-frontend-image.txt', 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## Frontend Image Vulnerability Scan Results\n\n\`\`\`\n${output}\n\`\`\``
-              })
-            } catch (error) {
-              console.log('No trivy report found or error reading it');
+            const path = require('path');
+            
+            const reports = [
+              { file: 'reports/trivy-backend-fs.txt', title: 'Backend FS Vulnerability Scan' },
+              { file: 'reports/trivy-backend-image.txt', title: 'Backend Image Vulnerability Scan' },
+              { file: 'reports/trivy-frontend-fs.txt', title: 'Frontend FS Vulnerability Scan' },
+              { file: 'reports/trivy-frontend-image.txt', title: 'Frontend Image Vulnerability Scan' }
+            ];
+
+            let commentBody = '## 🛡️ Security Scan Results\n\n';
+            let hasReports = false;
+
+            for (const report of reports) {
+              try {
+                if (fs.existsSync(report.file)) {
+                  const content = fs.readFileSync(report.file, 'utf8');
+                  if (content.trim()) {
+                    commentBody += `### ${report.title}\n\n\`\`\`\n${content}\n\`\`\`\n\n---\n\n`;
+                    hasReports = true;
+                  }
+                }
+              } catch (error) {
+                console.log(`Error reading ${report.file}: ${error.message}`);
+              }
             }
+
+            if (!hasReports) {
+              commentBody += 'No security reports found or all scans were skipped/failed.';
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
+
