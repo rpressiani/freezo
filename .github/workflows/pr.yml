@@ -10,6 +10,10 @@ on:
       - 'LICENSE'
       - 'charts/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 env:
   IMAGE_BASE: ${{ github.repository }}
 
