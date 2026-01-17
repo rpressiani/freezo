@@ -51,7 +51,7 @@ jobs:
           load: true
           push: false
           tags: ${{ env.IMAGE_BASE }}-backend:pr-${{ github.event.number }}
-          cache-from: type=gha
+          cache-from: type=gha,scope=backend
 
       - name: Run Trivy vulnerability scanner (FS)
         uses: aquasecurity/trivy-action@0.33.1
@@ -111,7 +111,7 @@ jobs:
           load: true
           push: false
           tags: ${{ env.IMAGE_BASE }}-frontend:pr-${{ github.event.number }}
-          cache-from: type=gha
+          cache-from: type=gha,scope=frontend
 
       - name: Run Trivy vulnerability scanner (FS)
         uses: aquasecurity/trivy-action@0.33.1
