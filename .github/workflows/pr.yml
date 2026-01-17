@@ -69,7 +69,7 @@ jobs:
 
       - name: Upload Backend FS Trivy Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-backend-fs
           path: trivy-backend-fs.md
@@ -89,7 +89,7 @@ jobs:
 
       - name: Upload Backend Image Trivy Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-backend-image
           path: trivy-backend-image.md
@@ -129,7 +129,7 @@ jobs:
 
       - name: Upload Frontend FS Trivy Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-frontend-fs
           path: trivy-frontend-fs.md
@@ -148,7 +148,7 @@ jobs:
 
       - name: Upload Frontend Image Trivy Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-frontend-image
           path: trivy-frontend-image.md
