@@ -1,16 +1,16 @@
 backend:
   replicaCount: 1
   image:
-    repository: freezo-backend
+    repository: ghcr.io/rpressiani/freezo-backend
     pullPolicy: IfNotPresent
-    # tag: "..."
+    tag: ""
 
 frontend:
   replicaCount: 1
   image:
-    repository: freezo-frontend
+    repository: ghcr.io/rpressiani/freezo-frontend
     pullPolicy: IfNotPresent
-    # tag: "..."
+    tag: ""
 
 gateway:
   enabled: false
