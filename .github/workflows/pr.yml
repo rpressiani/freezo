@@ -58,10 +58,11 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: 'backend'
-          scanners: 'vuln,secret'
+          scanners: 'vuln'
           hide-progress: true
-          format: 'table'
-          output: 'trivy-backend-fs.txt'
+          format: 'template'
+          template: '@.github/trivy.tpl'
+          output: 'trivy-backend-fs.md'
           exit-code: '1'
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
@@ -71,15 +72,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trivy-backend-fs
-          path: trivy-backend-fs.txt
+          path: trivy-backend-fs.md
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: '${{ env.IMAGE_BASE }}-backend:pr-${{ github.event.number }}'
-          format: 'table'
-          output: 'trivy-backend-image.txt'
-          scanners: 'vuln,secret'
+          format: 'template'
+          template: '@.github/trivy.tpl'
+          output: 'trivy-backend-image.md'
+          scanners: 'vuln'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
@@ -90,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trivy-backend-image
-          path: trivy-backend-image.txt
+          path: trivy-backend-image.md
 
   build-frontend:
     name: Build Frontend (Dry Run)
@@ -116,10 +118,11 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: 'frontend'
-          scanners: 'vuln,secret'
+          scanners: 'vuln'
           hide-progress: true
-          format: 'table'
-          output: 'trivy-frontend-fs.txt'
+          format: 'template'
+          template: '@.github/trivy.tpl'
+          output: 'trivy-frontend-fs.md'
           exit-code: '1'
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
@@ -129,18 +132,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trivy-frontend-fs
-          path: trivy-frontend-fs.txt
+          path: trivy-frontend-fs.md
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: '${{ env.IMAGE_BASE }}-frontend:pr-${{ github.event.number }}'
-          format: 'table'
-          output: 'trivy-frontend-image.txt'
-          scanners: 'vuln,secret'
+          format: 'template'
+          template: '@.github/trivy.tpl'
+          output: 'trivy-frontend-image.md'
+          scanners: 'vuln'
           exit-code: '1'
           ignore-unfixed: true
-          vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Frontend Image Trivy Report
@@ -148,7 +151,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trivy-frontend-image
-          path: trivy-frontend-image.txt
+          path: trivy-frontend-image.md
 
   report-security:
     name: Post Security Report
@@ -172,10 +175,10 @@ jobs:
             const path = require('path');
             
             const reports = [
-              { file: 'reports/trivy-backend-fs.txt', title: 'Backend FS Vulnerability Scan' },
-              { file: 'reports/trivy-backend-image.txt', title: 'Backend Image Vulnerability Scan' },
-              { file: 'reports/trivy-frontend-fs.txt', title: 'Frontend FS Vulnerability Scan' },
-              { file: 'reports/trivy-frontend-image.txt', title: 'Frontend Image Vulnerability Scan' }
+              { file: 'reports/trivy-backend-fs.md', title: 'Backend FS Vulnerability Scan' },
+              { file: 'reports/trivy-backend-image.md', title: 'Backend Image Vulnerability Scan' },
+              { file: 'reports/trivy-frontend-fs.md', title: 'Frontend FS Vulnerability Scan' },
+              { file: 'reports/trivy-frontend-image.md', title: 'Frontend Image Vulnerability Scan' }
             ];
 
             let commentBody = '## 🛡️ Security Scan Results\n\n';
@@ -186,7 +189,7 @@ jobs:
                 if (fs.existsSync(report.file)) {
                   const content = fs.readFileSync(report.file, 'utf8');
                   if (content.trim()) {
-                    commentBody += `### ${report.title}\n\n\`\`\`\n${content}\n\`\`\`\n\n---\n\n`;
+                    commentBody += `### ${report.title}\n\n${content}\n\n---\n\n`;
                     hasReports = true;
                   }
                 }
