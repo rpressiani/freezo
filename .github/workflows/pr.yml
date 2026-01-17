@@ -189,7 +189,7 @@ jobs:
                 if (fs.existsSync(report.file)) {
                   const content = fs.readFileSync(report.file, 'utf8');
                   if (content.trim()) {
-                    commentBody += `### ${report.title}\n\n${content}\n\n---\n\n`;
+                    commentBody += `### ${report.title}\n\n${content}\n`;
                     hasReports = true;
                   }
                 }
