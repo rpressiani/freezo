@@ -54,7 +54,7 @@ jobs:
           cache-from: type=gha,scope=backend
 
       - name: Run Trivy vulnerability scanner (FS)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: 'fs'
           scan-ref: 'backend'
@@ -75,7 +75,7 @@ jobs:
           path: trivy-backend-fs.md
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           image-ref: '${{ env.IMAGE_BASE }}-backend:pr-${{ github.event.number }}'
           format: 'template'
@@ -114,7 +114,7 @@ jobs:
           cache-from: type=gha,scope=frontend
 
       - name: Run Trivy vulnerability scanner (FS)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           scan-type: 'fs'
           scan-ref: 'frontend'
@@ -135,7 +135,7 @@ jobs:
           path: trivy-frontend-fs.md
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.34.0
         with:
           image-ref: '${{ env.IMAGE_BASE }}-frontend:pr-${{ github.event.number }}'
           format: 'template'
