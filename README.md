@@ -2,7 +2,9 @@
 
 A simple, self-hosted application to track food inventory in your freezers. Built with Go, React, and SQLite, designed for homelab environments.
 
-![Freezo Screenshot](docs/screenshot.png)
+![Freezo Screenshot](docs/assets/screenshot.png)
+
+📚 **[View the Instructions Guide & user manual here!](docs/instructions.md)**
 
 ## Architecture
 
@@ -62,7 +64,6 @@ helm install freezo freezo/freezo
 
 - Manage multiple Freezers/Locations.
 - Track Items with quantity and expiry dates.
-- Categorize items.
 - Responsive UI for Desktop and Mobile.
 
 ---
