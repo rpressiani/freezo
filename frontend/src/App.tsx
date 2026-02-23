@@ -377,7 +377,7 @@ function App() {
             <Snowflake className="w-6 h-6 text-cyan-600" />
           </div>
           <h1 className="text-xl font-bold text-gray-800">
-            {currentView === 'items' ? 'Freezer Tracker' : 'Settings'}
+            {currentView === 'items' ? 'Freezo' : 'Settings'}
           </h1>
         </div>
 
