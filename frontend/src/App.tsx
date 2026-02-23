@@ -72,6 +72,11 @@ function App() {
   const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
+
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+
   const [notificationModal, setNotificationModal] = useState({ isOpen: false, title: '', message: '', type: 'success' as 'success' | 'error' });
 
   // Form States
@@ -247,6 +252,34 @@ function App() {
     } finally {
       setIsRestoring(false);
       setRestoreFile(null);
+    }
+  };
+
+  const confirmReset = async () => {
+    if (resetConfirmText !== 'DELETE') return;
+    setIsResetting(true);
+
+    try {
+      await api.resetDatabase();
+      setIsResetConfirmOpen(false);
+      setNotificationModal({
+        isOpen: true,
+        title: 'Success',
+        message: 'Database reset successfully',
+        type: 'success'
+      });
+      await loadData();
+    } catch (err: any) {
+      setIsResetConfirmOpen(false);
+      setNotificationModal({
+        isOpen: true,
+        title: 'Reset Failed',
+        message: err.message || 'Failed to reset database',
+        type: 'error'
+      });
+    } finally {
+      setIsResetting(false);
+      setResetConfirmText('');
     }
   };
 
@@ -537,6 +570,24 @@ function App() {
                       </label>
                     </div>
                   </div>
+
+                  <div className="bg-white p-6 rounded-xl border border-red-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
+                    <div>
+                      <h3 className="font-medium text-red-700">Danger Zone</h3>
+                      <p className="text-sm text-gray-500 mt-1 max-w-lg">Permanently delete all freezers, categories, and items. This will completely wipe your database.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={() => {
+                          setResetConfirmText('');
+                          setIsResetConfirmOpen(true);
+                        }}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg transition-colors font-medium whitespace-nowrap shadow-sm text-sm"
+                      >
+                        Reset Database
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -774,6 +825,59 @@ function App() {
           {restoreFile && (
             <p className="text-sm text-gray-500">File selected: {restoreFile.name}</p>
           )}
+        </div>
+      </Modal>
+
+      {/* Reset Confirmation Modal */}
+      <Modal
+        isOpen={isResetConfirmOpen}
+        onClose={() => !isResetting && setIsResetConfirmOpen(false)}
+        title="Reset Database"
+        footer={
+          isResetting ? (
+            <div className="flex justify-center w-full py-2">
+              <span className="text-gray-500 font-medium animate-pulse">Resetting database...</span>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => { setIsResetConfirmOpen(false); setResetConfirmText(''); }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReset}
+                disabled={resetConfirmText !== 'DELETE'}
+                className={`px-4 py-2 text-white rounded-lg transition-colors ${resetConfirmText === 'DELETE' ? 'bg-red-600 hover:bg-red-700' : 'bg-red-300 cursor-not-allowed'}`}
+              >
+                Confirm Reset
+              </button>
+            </>
+          )
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3 text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+            <AlertCircle className="w-6 h-6 shrink-0" />
+            <span className="font-semibold text-sm">Warning: Destructive Action</span>
+          </div>
+          <p className="text-gray-600">
+            Are you sure you want to reset your database? <strong>This will permanently delete all freezers, categories, and items. This CANNOT be undone.</strong>
+          </p>
+          <div className="pt-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type <strong>DELETE</strong> below to confirm:
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+              value={resetConfirmText}
+              onChange={(e) => setResetConfirmText(e.target.value)}
+              placeholder="DELETE"
+              autoComplete="off"
+            />
+          </div>
         </div>
       </Modal>
 

@@ -418,3 +418,21 @@ func ImportDatabase(w http.ResponseWriter, r *http.Request) {
 
 	jsonResponse(w, http.StatusOK, map[string]string{"message": "Database restored successfully"})
 }
+
+func ResetDatabase(w http.ResponseWriter, r *http.Request) {
+	// Shut down existing connection
+	if err := db.DB.Close(); err != nil {
+		http.Error(w, "Failed to close database", http.StatusInternalServerError)
+		return
+	}
+
+	// Delete existing files
+	os.Remove(db.DBPath)
+	os.Remove(db.DBPath + "-wal")
+	os.Remove(db.DBPath + "-shm")
+
+	// Reinitialize (create new empty db + tables + seeds)
+	db.InitDB(db.DBPath)
+
+	jsonResponse(w, http.StatusOK, map[string]string{"message": "Database reset successfully"})
+}

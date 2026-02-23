@@ -155,4 +155,14 @@ export const api = {
             throw new Error(text || 'Failed to import database');
         }
     },
+
+    resetDatabase: async (): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/database/reset`, {
+            method: 'POST',
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to reset database');
+        }
+    },
 };
