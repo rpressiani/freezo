@@ -2,6 +2,8 @@
 
 A simple, self-hosted application to track food inventory in your freezers. Built with Go, React, and SQLite, designed for homelab environments.
 
+![Freezo Screenshot](docs/screenshot.png)
+
 ## Architecture
 
 - **Backend**: Go (Golang) with Chi router and SQLite database.
