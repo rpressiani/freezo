@@ -681,14 +681,18 @@ function App() {
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center gap-2">
-                                    <Snowflake className="w-4 h-4 text-cyan-500" />
+                                  <button
+                                    onClick={() => openMoveModal(dateGroup.items)}
+                                    className="flex items-center gap-2 px-2.5 py-1.5 -mx-2 rounded-lg bg-cyan-50/50 border border-transparent hover:bg-cyan-100 hover:border-cyan-200 text-cyan-700 transition-all cursor-pointer group shadow-sm hover:shadow"
+                                    title="Move items to another freezer"
+                                  >
+                                    <Snowflake className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
                                     <span
-                                      className="text-cyan-700 font-medium truncate max-w-[150px]"
+                                      className="font-medium truncate max-w-[150px]"
                                     >
                                       {freezers.find(f => f.id === dateGroup.freezerId)?.name || 'Unknown'}
                                     </span>
-                                  </div>
+                                  </button>
                                 </div>
                               </div>
 
@@ -699,12 +703,6 @@ function App() {
                                   className="text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors w-full sm:w-auto text-center"
                                 >
                                   Consume
-                                </button>
-                                <button
-                                  onClick={() => openMoveModal(dateGroup.items)}
-                                  className="text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors w-full sm:w-auto text-center mt-2 sm:mt-0 sm:ml-2"
-                                >
-                                  Move
                                 </button>
                               </div>
                             </div>
