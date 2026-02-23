@@ -124,4 +124,35 @@ export const api = {
             throw new Error(text || 'Failed to move items');
         }
     },
+
+    exportDatabase: async (): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/database/export`);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to export database');
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'freezer.db';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    },
+
+    importDatabase: async (file: File): Promise<void> => {
+        const formData = new FormData();
+        formData.append('database', file);
+
+        const res = await fetch(`${BASE_URL}/database/import`, {
+            method: 'POST',
+            body: formData,
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to import database');
+        }
+    },
 };

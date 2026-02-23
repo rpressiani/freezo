@@ -3,7 +3,10 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -333,4 +336,85 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	id, _ := res.LastInsertId()
 	c.ID = id
 	jsonResponse(w, http.StatusCreated, c)
+}
+
+// --- Database Backup/Restore ---
+
+func ExportDatabase(w http.ResponseWriter, r *http.Request) {
+	// We'll create a temporary backup using SQLite's VACUUM INTO command.
+	// This is safe to run while the DB is in use (especially in WAL mode).
+
+	// Create a temporary file
+	tempFile, err := os.CreateTemp("", "freezo-backup-*.db")
+	if err != nil {
+		http.Error(w, "Failed to create temp file", http.StatusInternalServerError)
+		return
+	}
+	backupPath := tempFile.Name()
+	tempFile.Close()
+	os.Remove(backupPath) // VACUUM INTO requires the target file to not exist
+
+	// Run backup
+	// Parameterizing the filename in VACUUM INTO might not be supported directly,
+	// but we format it safely.
+	query := fmt.Sprintf("VACUUM INTO '%s'", backupPath)
+	if _, err := db.DB.Exec(query); err != nil {
+		http.Error(w, "Failed to export database", http.StatusInternalServerError)
+		return
+	}
+
+	// Serve the file
+	w.Header().Set("Content-Disposition", "attachment; filename=freezer.db")
+	w.Header().Set("Content-Type", "application/octet-stream")
+	http.ServeFile(w, r, backupPath)
+
+	// Clean it up afterwards
+	os.Remove(backupPath)
+}
+
+func ImportDatabase(w http.ResponseWriter, r *http.Request) {
+	// 1. parse multipart form
+	err := r.ParseMultipartForm(10 << 20) // 10MB limit
+	if err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	file, _, err := r.FormFile("database")
+	if err != nil {
+		http.Error(w, "Missing database file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// 2. Shut down existing connection
+	if err := db.DB.Close(); err != nil {
+		http.Error(w, "Failed to close database", http.StatusInternalServerError)
+		return
+	}
+
+	// 3. Delete existing files including WAL
+	os.Remove(db.DBPath)
+	os.Remove(db.DBPath + "-wal")
+	os.Remove(db.DBPath + "-shm")
+
+	// 4. Create new file from upload
+	outFile, err := os.Create(db.DBPath)
+	if err != nil {
+		http.Error(w, "Failed to create new database file", http.StatusInternalServerError)
+		return
+	}
+	defer outFile.Close()
+
+	if _, err := io.Copy(outFile, file); err != nil {
+		http.Error(w, "Failed to write database file", http.StatusInternalServerError)
+		return
+	}
+
+	outFile.Sync()
+
+	// 5. Reinitialize
+	db.InitDB(db.DBPath)
+
+	jsonResponse(w, http.StatusOK, map[string]string{"message": "Database restored successfully"})
 }
