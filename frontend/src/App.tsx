@@ -574,7 +574,7 @@ function App() {
                   <div className="bg-white p-6 rounded-xl border border-red-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
                     <div>
                       <h3 className="font-medium text-red-700">Danger Zone</h3>
-                      <p className="text-sm text-gray-500 mt-1 max-w-lg">Permanently delete all freezers, categories, and items. This will completely wipe your database.</p>
+                      <p className="text-sm text-gray-500 mt-1 max-w-lg">Permanently delete all freezers and items. This will completely wipe your database.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
@@ -861,7 +861,7 @@ function App() {
             <span className="font-semibold text-sm">Warning: Destructive Action</span>
           </div>
           <p className="text-gray-600">
-            Are you sure you want to reset your database? <strong>This will permanently delete all freezers, categories, and items. This CANNOT be undone.</strong>
+            Are you sure you want to reset your database? <strong>This will permanently delete all freezers and items. This CANNOT be undone.</strong>
           </p>
           <div className="pt-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
