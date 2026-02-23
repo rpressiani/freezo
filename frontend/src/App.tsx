@@ -68,6 +68,17 @@ function App() {
   const [moveQty, setMoveQty] = useState(1);
   const [moveTargetFreezerId, setMoveTargetFreezerId] = useState<number>(0);
 
+  // Backup / Restore Modal States
+  const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+
+  const [notificationModal, setNotificationModal] = useState({ isOpen: false, title: '', message: '', type: 'success' as 'success' | 'error' });
+
   // Form States
   const [freezerName, setFreezerName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -196,6 +207,79 @@ function App() {
       loadData();
     } catch (err) {
       alert('Failed to create freezer');
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      await api.exportDatabase();
+    } catch (err: any) {
+      alert(err.message || 'Failed to export database');
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setRestoreFile(file);
+    setIsRestoreConfirmOpen(true);
+    e.target.value = ''; // Reset input
+  };
+
+  const confirmRestore = async () => {
+    if (!restoreFile) return;
+    setIsRestoring(true);
+
+    try {
+      await api.importDatabase(restoreFile);
+      setIsRestoreConfirmOpen(false);
+      setNotificationModal({
+        isOpen: true,
+        title: 'Success',
+        message: 'Database restored successfully',
+        type: 'success'
+      });
+      await loadData();
+    } catch (err: any) {
+      setIsRestoreConfirmOpen(false);
+      setNotificationModal({
+        isOpen: true,
+        title: 'Restore Failed',
+        message: err.message || 'Failed to import database',
+        type: 'error'
+      });
+    } finally {
+      setIsRestoring(false);
+      setRestoreFile(null);
+    }
+  };
+
+  const confirmReset = async () => {
+    if (resetConfirmText !== 'DELETE') return;
+    setIsResetting(true);
+
+    try {
+      await api.resetDatabase();
+      setIsResetConfirmOpen(false);
+      setNotificationModal({
+        isOpen: true,
+        title: 'Success',
+        message: 'Database reset successfully',
+        type: 'success'
+      });
+      await loadData();
+    } catch (err: any) {
+      setIsResetConfirmOpen(false);
+      setNotificationModal({
+        isOpen: true,
+        title: 'Reset Failed',
+        message: err.message || 'Failed to reset database',
+        type: 'error'
+      });
+    } finally {
+      setIsResetting(false);
+      setResetConfirmText('');
     }
   };
 
@@ -377,7 +461,7 @@ function App() {
             <Snowflake className="w-6 h-6 text-cyan-600" />
           </div>
           <h1 className="text-xl font-bold text-gray-800">
-            {currentView === 'items' ? 'Freezer Tracker' : 'Settings'}
+            {currentView === 'items' ? 'Freezo' : 'Settings'}
           </h1>
         </div>
 
@@ -459,6 +543,51 @@ function App() {
                       No freezers found. Create one to get started.
                     </div>
                   )}
+                </div>
+
+                <div className="pt-8 border-t border-gray-200 mt-8">
+                  <h2 className="text-lg font-semibold text-gray-700 mb-4">Backup & Restore</h2>
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-medium text-gray-900">Database Backup</h3>
+                      <p className="text-sm text-gray-500 mt-1 max-w-lg">Download a full backup of your freezer inventory, or restore from a previously exported backup file.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={handleExport}
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg transition-colors font-medium whitespace-nowrap shadow-sm text-sm"
+                      >
+                        Export Backup
+                      </button>
+                      <label className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg transition-colors font-medium whitespace-nowrap shadow-sm cursor-pointer text-sm text-center">
+                        Restore Backup
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".db,.sqlite"
+                          onChange={handleImport}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-xl border border-red-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
+                    <div>
+                      <h3 className="font-medium text-red-700">Danger Zone</h3>
+                      <p className="text-sm text-gray-500 mt-1 max-w-lg">Permanently delete all freezers, categories, and items. This will completely wipe your database.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={() => {
+                          setResetConfirmText('');
+                          setIsResetConfirmOpen(true);
+                        }}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg transition-colors font-medium whitespace-nowrap shadow-sm text-sm"
+                      >
+                        Reset Database
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -655,6 +784,127 @@ function App() {
           <br /><br />
           This action cannot be undone.
         </p>
+      </Modal>
+
+      {/* Restore Confirmation Modal */}
+      <Modal
+        isOpen={isRestoreConfirmOpen}
+        onClose={() => !isRestoring && setIsRestoreConfirmOpen(false)}
+        title="Restore Backup"
+        footer={
+          isRestoring ? (
+            <div className="flex justify-center w-full py-2">
+              <span className="text-gray-500 font-medium animate-pulse">Restoring database...</span>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => { setIsRestoreConfirmOpen(false); setRestoreFile(null); }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRestore}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Restore
+              </button>
+            </>
+          )
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3 text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+            <AlertCircle className="w-6 h-6 shrink-0" />
+            <span className="font-semibold text-sm">Warning: Destructive Action</span>
+          </div>
+          <p className="text-gray-600">
+            Are you sure you want to restore this backup? <strong>This will completely overwrite your current database and CANNOT be undone.</strong>
+          </p>
+          {restoreFile && (
+            <p className="text-sm text-gray-500">File selected: {restoreFile.name}</p>
+          )}
+        </div>
+      </Modal>
+
+      {/* Reset Confirmation Modal */}
+      <Modal
+        isOpen={isResetConfirmOpen}
+        onClose={() => !isResetting && setIsResetConfirmOpen(false)}
+        title="Reset Database"
+        footer={
+          isResetting ? (
+            <div className="flex justify-center w-full py-2">
+              <span className="text-gray-500 font-medium animate-pulse">Resetting database...</span>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => { setIsResetConfirmOpen(false); setResetConfirmText(''); }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReset}
+                disabled={resetConfirmText !== 'DELETE'}
+                className={`px-4 py-2 text-white rounded-lg transition-colors ${resetConfirmText === 'DELETE' ? 'bg-red-600 hover:bg-red-700' : 'bg-red-300 cursor-not-allowed'}`}
+              >
+                Confirm Reset
+              </button>
+            </>
+          )
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3 text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+            <AlertCircle className="w-6 h-6 shrink-0" />
+            <span className="font-semibold text-sm">Warning: Destructive Action</span>
+          </div>
+          <p className="text-gray-600">
+            Are you sure you want to reset your database? <strong>This will permanently delete all freezers, categories, and items. This CANNOT be undone.</strong>
+          </p>
+          <div className="pt-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type <strong>DELETE</strong> below to confirm:
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+              value={resetConfirmText}
+              onChange={(e) => setResetConfirmText(e.target.value)}
+              placeholder="DELETE"
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Notification Modal */}
+      <Modal
+        isOpen={notificationModal.isOpen}
+        onClose={() => setNotificationModal(prev => ({ ...prev, isOpen: false }))}
+        title={notificationModal.title}
+        footer={
+          <button
+            onClick={() => setNotificationModal(prev => ({ ...prev, isOpen: false }))}
+            className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 w-full sm:w-auto"
+          >
+            OK
+          </button>
+        }
+      >
+        <div className="flex items-center gap-3">
+          {notificationModal.type === 'error' ? (
+            <AlertCircle className="w-6 h-6 text-red-500 shrink-0" />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <span className="text-green-600 font-bold text-xs">✓</span>
+            </div>
+          )}
+          <p className="text-gray-600">{notificationModal.message}</p>
+        </div>
       </Modal>
 
       {/* Add Item Modal */}

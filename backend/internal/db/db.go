@@ -8,8 +8,10 @@ import (
 )
 
 var DB *sql.DB
+var DBPath string
 
 func InitDB(dataSourceName string) {
+	DBPath = dataSourceName
 	var err error
 	// Enable WAL mode and set a busy timeout to handle concurrent writes
 	// _busy_timeout=5000: Wait up to 5000ms before erroring with SQLITE_BUSY
