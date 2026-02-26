@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatDistanceToNow, isToday, isYesterday, parse } from 'date-fns';
+import { formatDistanceToNow, isToday, isYesterday, parse, format } from 'date-fns';
 import { api, type Freezer, type Item } from './api';
 import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft } from 'lucide-react';
 import { Modal } from './components/Modal';
@@ -89,7 +89,7 @@ function App() {
     name: '',
     quantity: 1 as number | string,
     freezerId: 0,
-    frozenDate: '',
+    frozenDate: format(new Date(), 'yyyy-MM-dd'),
     weightMode: 'none' as WeightMode,
     commonWeight: '',
     individualWeights: [] as string[],
@@ -186,7 +186,7 @@ function App() {
       name: prefillName || '',
       quantity: 1,
       freezerId: freezers[0].id,
-      frozenDate: '',
+      frozenDate: format(new Date(), 'yyyy-MM-dd'),
       weightMode: 'none',
       commonWeight: '',
       individualWeights: [''],
