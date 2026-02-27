@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/component: backend
 spec:
   replicas: {{ .Values.backend.replicaCount }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "freezo.backendSelectorLabels" . | nindent 6 }}
