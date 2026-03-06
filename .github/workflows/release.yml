@@ -79,7 +79,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Build Backend (Local for Scan)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend
           load: true
@@ -100,7 +100,7 @@ jobs:
 
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend
           platforms: linux/amd64,linux/arm64
@@ -155,7 +155,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Build Frontend (Local for Scan)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: frontend
           load: true
@@ -176,7 +176,7 @@ jobs:
 
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: frontend
           platforms: linux/amd64,linux/arm64
