@@ -37,6 +37,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [backendVersion, setBackendVersion] = useState<string>('loading...');
 
   // Modal States
   const [isAddFreezerOpen, setIsAddFreezerOpen] = useState(false);
@@ -98,9 +99,10 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [f, i] = await Promise.all([api.getFreezers(), api.getItems()]);
+      const [f, i, v] = await Promise.all([api.getFreezers(), api.getItems(), api.getVersion().catch(() => ({ version: 'unknown' }))]);
       setFreezers(f);
       setItems(i);
+      setBackendVersion(v.version);
       setError(null);
     } catch (err) {
       console.error(err);
@@ -588,6 +590,10 @@ function App() {
                       </button>
                     </div>
                   </div>
+                </div>
+
+                <div className="pt-8 mt-8 text-center text-sm text-gray-500 pb-4">
+                  <p>Frontend: {import.meta.env.VITE_APP_VERSION || 'dev'} | Backend: {backendVersion}</p>
                 </div>
               </div>
             ) : (

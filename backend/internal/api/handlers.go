@@ -436,3 +436,11 @@ func ResetDatabase(w http.ResponseWriter, r *http.Request) {
 
 	jsonResponse(w, http.StatusOK, map[string]string{"message": "Database reset successfully"})
 }
+
+func GetVersion(w http.ResponseWriter, r *http.Request) {
+	version := os.Getenv("APP_VERSION")
+	if version == "" {
+		version = "dev"
+	}
+	jsonResponse(w, http.StatusOK, map[string]string{"version": version})
+}

@@ -165,4 +165,13 @@ export const api = {
             throw new Error(text || 'Failed to reset database');
         }
     },
+
+    getVersion: async (): Promise<{ version: string }> => {
+        const res = await fetch(`${BASE_URL}/version`);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to fetch version');
+        }
+        return res.json();
+    },
 };
