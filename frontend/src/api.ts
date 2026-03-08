@@ -135,7 +135,8 @@ export const api = {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'freezer.db';
+        const datetime = new Date().toISOString().replace(/[:.]/g, '-');
+        a.download = `freezo-${datetime}.db`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
