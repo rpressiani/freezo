@@ -47,6 +47,8 @@ func NewRouter() *chi.Mux {
 			r.Post("/import", ImportDatabase)
 			r.Post("/reset", ResetDatabase)
 		})
+
+		r.Get("/version", GetVersion)
 	})
 
 	return r

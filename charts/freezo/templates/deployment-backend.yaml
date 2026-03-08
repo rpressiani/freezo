@@ -28,6 +28,8 @@ spec:
           env:
             - name: DB_PATH
               value: "/data/freezer.db"
+            - name: APP_VERSION
+              value: {{ .Chart.AppVersion | quote }}
           volumeMounts:
             - name: data
               mountPath: /data
