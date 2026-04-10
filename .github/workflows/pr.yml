@@ -167,7 +167,7 @@ jobs:
           merge-multiple: true
 
       - name: Post Consolidated Security Report
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
