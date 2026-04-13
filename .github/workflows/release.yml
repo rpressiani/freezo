@@ -237,7 +237,7 @@ jobs:
           jq -r .body notes.json > release_body.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "${{ github.ref_name }}"
           body_path: release_body.md
