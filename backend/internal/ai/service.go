@@ -181,7 +181,7 @@ func generateActionSummary(toolName string, args map[string]interface{}) string 
 			}
 		} else if rawMap, ok := args["items"].(map[string]interface{}); ok {
 			itemsList = append(itemsList, rawMap)
-		} else if args != nil {
+		} else {
 			itemsList = append(itemsList, args)
 		}
 
