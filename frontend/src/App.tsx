@@ -639,7 +639,7 @@ function App() {
                   <h2 className="text-lg font-semibold text-gray-700">Manage Freezers</h2>
                   <button
                     onClick={() => setIsAddFreezerOpen(true)}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     Add Freezer
