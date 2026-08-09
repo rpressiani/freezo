@@ -17,6 +17,8 @@ backend/freezer.db
 # SQLite
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 
 
 # Docker

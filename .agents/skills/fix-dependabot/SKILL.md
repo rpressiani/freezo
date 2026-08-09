@@ -80,11 +80,15 @@ Use this skill to systematically resolve open Dependabot pull requests in **any 
 ### Step 4: Re-trigger Dependabot & Verify Closure
 
 1. Trigger Dependabot re-evaluation on all open Dependabot PRs:
+   - For PRs <30 days old: Use `@dependabot rebase`.
+   - For PRs >30 days old: **Must use `@dependabot recreate`** because Dependabot disables automatic rebasing on stale PRs over 30 days old.
+
    ```bash
    for num in <DEPENDABOT_PR_NUMBERS>; do
-     gh pr comment $num -b "@dependabot rebase"
+     gh pr comment $num -b "@dependabot recreate"
    done
    ```
+
 2. **Verify Automatic PR Closure**:
    - Dependabot will re-evaluate each PR against `main`.
    - PRs whose dependencies are satisfied on `main` will automatically close.
@@ -98,3 +102,4 @@ Use this skill to systematically resolve open Dependabot pull requests in **any 
 | **`Unable to resolve action ... unable to find version`** | Missing leading `v` prefix in GitHub Action tag (e.g., `@0.36.0` vs `@v0.36.0`). | Check releases via `gh release list --repo <action>` and format tag correctly. |
 | **Peer Dependency Conflicts (`ERESOLVE`)** | Installing packages individually causes version mismatches between peer dependencies. | Batch update all related packages in a single installer command. |
 | **CI Failures on Old PR Branches** | PR branch predates recent base image security patches or main branch refactors. | Pushing consolidated updates directly to `main` incorporates latest base fixes. |
+| **Dependabot ignores `@dependabot rebase`** | Automatic rebasing is disabled by GitHub for PRs open over 30 days. | Use `@dependabot recreate` instead to force Dependabot to regenerate and close the PR. |

@@ -63,7 +63,7 @@ To release a new version of the application (Frontend + Backend):
 
 ### Helm Chart Release
 To release a new version of the Helm chart:
-1. **Update Config**: Bump `version` and `appVersion` in [Chart.yaml](file:///Users/riccardo/git/homelab/freezo/charts/freezo/Chart.yaml).
+1. **Update Config**: Bump `version` and `appVersion` in [Chart.yaml](charts/freezo/Chart.yaml).
 2. **Push**: Commit and push the change to `main`.
     This triggers the `chart-release.yml` workflow which packages and releases the chart to GitHub Pages.
 

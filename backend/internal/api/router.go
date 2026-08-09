@@ -49,6 +49,15 @@ func NewRouter() *chi.Mux {
 			r.Post("/import", ImportDatabase)
 			r.Post("/reset", ResetDatabase)
 		})
+
+		r.Post("/mcp", HandleMCP)
+
+		r.Route("/ai", func(r chi.Router) {
+			r.Post("/process", ProcessAIPrompt)
+			r.Post("/execute", ExecuteAIActions)
+			r.Get("/config", GetAIConfig)
+			r.Post("/config", UpdateAIConfig)
+		})
 	})
 
 	return r
