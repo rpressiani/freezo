@@ -20,16 +20,16 @@ interface ItemGroup {
 
 type WeightMode = 'none' | 'same' | 'individual';
 
-function getCategoryIcon(categoryId: number, categories: Category[]) {
+function getCategoryIcon(categoryId: number, categories: Category[], className: string = "w-6 h-6") {
   const cat = categories.find(c => c.id === categoryId);
   const name = cat?.name.toLowerCase() || '';
-  if (name.includes('pork')) return <PiggyBank className="w-6 h-6 text-pink-600" />;
-  if (name.includes('seafood')) return <Fish className="w-6 h-6 text-blue-500" />;
-  if (name.includes('beef')) return <Beef className="w-6 h-6 text-red-600" />;
-  if (name.includes('poultry')) return <Drumstick className="w-6 h-6 text-amber-600" />;
-  if (name.includes('bread')) return <Croissant className="w-6 h-6 text-yellow-600" />;
-  if (name.includes('uncategorized')) return <Tag className="w-6 h-6 text-gray-500" />;
-  return <Package className="w-6 h-6 text-orange-600" />;
+  if (name.includes('pork')) return <PiggyBank className={`${className} text-pink-600`} />;
+  if (name.includes('seafood')) return <Fish className={`${className} text-blue-500`} />;
+  if (name.includes('beef')) return <Beef className={`${className} text-red-600`} />;
+  if (name.includes('poultry')) return <Drumstick className={`${className} text-amber-600`} />;
+  if (name.includes('bread')) return <Croissant className={`${className} text-yellow-600`} />;
+  if (name.includes('uncategorized')) return <Tag className={`${className} text-gray-500`} />;
+  return <Package className={`${className} text-orange-600`} />;
 }
 
 function getRelativeTime(dateStr: string): string {
@@ -48,6 +48,7 @@ function App() {
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedFreezerFilter, setSelectedFreezerFilter] = useState<number | null>(null);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -141,9 +142,11 @@ function App() {
   }, []);
 
   // Group items by Name -> Expiry Date
-  const filteredItems = selectedFreezerFilter
-    ? items.filter(i => i.freezer_id === selectedFreezerFilter)
-    : items;
+  const filteredItems = items.filter(i => {
+    if (selectedFreezerFilter && i.freezer_id !== selectedFreezerFilter) return false;
+    if (selectedCategoryFilter && i.category_id !== selectedCategoryFilter) return false;
+    return true;
+  });
 
   const itemGroups: ItemGroup[] = Object.values(filteredItems.reduce((acc, item) => {
     if (!acc[item.name]) {
@@ -203,16 +206,17 @@ function App() {
 
   const openAddItemModal = (prefillName?: string) => {
     if (freezers.length === 0) {
-      if (freezers.length === 0) {
-        setIsNoFreezerWarningOpen(true);
-        return;
-      }
+      setIsNoFreezerWarningOpen(true);
+      return;
     }
+    const existingItem = prefillName ? items.find(i => i.name.toLowerCase() === prefillName.toLowerCase()) : null;
+    const catId = existingItem ? existingItem.category_id : 1;
+
     setItemForm({
       name: prefillName || '',
       quantity: 1,
       freezerId: freezers[0].id,
-      categoryId: 1,
+      categoryId: catId,
       frozenDate: format(new Date(), 'yyyy-MM-dd'),
       weightMode: 'none',
       commonWeight: '',
@@ -653,19 +657,85 @@ function App() {
             ) : (
               // Items View
               <div className="space-y-4">
-                {selectedFreezerFilter && (
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center gap-3 text-blue-800">
-                      <Snowflake className="w-5 h-5" />
-                      <span className="font-medium">
-                        Viewing items in <strong>{freezers.find(f => f.id === selectedFreezerFilter)?.name}</strong>
-                      </span>
+                {/* Category Filter Pills */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter(null)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                      selectedCategoryFilter === null
+                        ? 'bg-cyan-600 text-white shadow-xs font-semibold'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Tag className="w-3.5 h-3.5" />
+                    All Categories
+                  </button>
+                  {categories.map(cat => {
+                    const isSelected = selectedCategoryFilter === cat.id;
+                    const count = items.filter(i => (selectedFreezerFilter ? i.freezer_id === selectedFreezerFilter : true) && i.category_id === cat.id).length;
+                    if (count === 0) return null;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategoryFilter(isSelected ? null : cat.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-cyan-600 text-white shadow-xs font-semibold'
+                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="shrink-0">{getCategoryIcon(cat.id, categories, "w-3.5 h-3.5")}</div>
+                        <span>{cat.name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-cyan-700 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active Filter Banner */}
+                {(selectedFreezerFilter || selectedCategoryFilter) && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-blue-900">
+                      <span className="font-medium text-blue-700">Active Filters:</span>
+                      {selectedFreezerFilter && (
+                        <span className="inline-flex items-center gap-1.5 bg-white border border-blue-200 text-blue-800 px-2.5 py-1 rounded-lg text-xs font-medium shadow-2xs">
+                          <Snowflake className="w-3.5 h-3.5 text-cyan-600" />
+                          Freezer: {freezers.find(f => f.id === selectedFreezerFilter)?.name}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFreezerFilter(null)}
+                            className="hover:text-red-500 ml-1 font-bold cursor-pointer"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      )}
+                      {selectedCategoryFilter && (
+                        <span className="inline-flex items-center gap-1.5 bg-white border border-blue-200 text-blue-800 px-2.5 py-1 rounded-lg text-xs font-medium shadow-2xs">
+                          {getCategoryIcon(selectedCategoryFilter, categories, "w-3.5 h-3.5")}
+                          Category: {categories.find(c => c.id === selectedCategoryFilter)?.name}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCategoryFilter(null)}
+                            className="hover:text-red-500 ml-1 font-bold cursor-pointer"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      )}
                     </div>
                     <button
-                      onClick={() => setSelectedFreezerFilter(null)}
-                      className="text-sm bg-white hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors font-medium"
+                      onClick={() => {
+                        setSelectedFreezerFilter(null);
+                        setSelectedCategoryFilter(null);
+                      }}
+                      className="text-xs bg-white hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors font-medium cursor-pointer"
                     >
-                      Clear Filter
+                      Clear All Filters
                     </button>
                   </div>
                 )}
@@ -782,8 +852,8 @@ function App() {
                 ))}
                 {filteredItems.length === 0 && (
                   <div className="text-center py-12 text-gray-500">
-                    {selectedFreezerFilter
-                      ? "No items in this freezer."
+                    {(selectedFreezerFilter || selectedCategoryFilter)
+                      ? "No items match the selected filters."
                       : "No items found. Tap the + button to add one!"}
                   </div>
                 )}
@@ -1130,29 +1200,31 @@ function App() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
-              {categories.map(c => {
-                const isSelected = itemForm.categoryId === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setItemForm({ ...itemForm, categoryId: c.id })}
-                    className={`p-2.5 rounded-lg border flex items-center gap-2 text-xs font-medium transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-cyan-600 bg-cyan-50 text-cyan-900 ring-1 ring-cyan-500/20 shadow-xs'
-                        : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                    }`}
-                  >
-                    <div className="shrink-0">{getCategoryIcon(c.id, categories)}</div>
-                    <span className="truncate">{c.name}</span>
-                  </button>
-                );
-              })}
+          {!isNameLocked && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+                {categories.map(c => {
+                  const isSelected = itemForm.categoryId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setItemForm({ ...itemForm, categoryId: c.id })}
+                      className={`p-2.5 rounded-lg border flex items-center gap-2 text-xs font-medium transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-cyan-600 bg-cyan-50 text-cyan-900 ring-1 ring-cyan-500/20 shadow-xs'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <div className="shrink-0">{getCategoryIcon(c.id, categories)}</div>
+                      <span className="truncate">{c.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date Frozen</label>
