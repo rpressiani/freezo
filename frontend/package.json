@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.2.2",
+    "@tailwindcss/vite": "^4.3.3",
     "date-fns": "^4.1.0",
     "flatted": "^3.4.2",
     "lucide-react": "^0.577.0",
