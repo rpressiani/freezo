@@ -79,7 +79,32 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	createSettingsTable := `
+	CREATE TABLE IF NOT EXISTS settings (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL
+	);`
+
+	_, err = DB.Exec(createSettingsTable)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	seedData()
+}
+
+func GetSetting(key string) (string, error) {
+	var val string
+	err := DB.QueryRow("SELECT value FROM settings WHERE key = ?", key).Scan(&val)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return val, err
+}
+
+func SetSetting(key, value string) error {
+	_, err := DB.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", key, value)
+	return err
 }
 
 func seedData() {

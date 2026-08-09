@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow, isToday, isYesterday, parse, format } from 'date-fns';
 import { api, type Freezer, type Item, type Category } from './api';
-import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, Tag, Apple, Carrot, Pizza, IceCream, Cookie, Soup, CupSoda, Milk, Egg } from 'lucide-react';
+import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, Tag, Apple, Carrot, Pizza, IceCream, Cookie, Soup, CupSoda, Milk, Egg, Sparkles } from 'lucide-react';
 import { Modal } from './components/Modal';
+import { AIAssistantModal } from './components/AIAssistantModal';
+import { AISettingsSection } from './components/AISettingsSection';
 
 interface DateGroup {
   date: string; // YYYY-MM-DD or 'No Date'
@@ -148,6 +150,7 @@ function App() {
   const [resetConfirmText, setResetConfirmText] = useState('');
 
   const [notificationModal, setNotificationModal] = useState({ isOpen: false, title: '', message: '', type: 'success' as 'success' | 'error' });
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
   // Category Management States
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -612,12 +615,21 @@ function App() {
         </div>
 
         {currentView === 'items' && (
-          <button
-            onClick={() => setCurrentView('settings')}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Settings className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAIModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg text-sm font-medium shadow-sm transition-all hover:shadow"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>AI Assistant</span>
+            </button>
+            <button
+              onClick={() => setCurrentView('settings')}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Settings className="w-6 h-6" />
+            </button>
+          </div>
         )}
       </header>
 
@@ -791,6 +803,8 @@ function App() {
                     </div>
                   </div>
                 </div>
+
+                <AISettingsSection />
               </div>
             ) : (
               // Items View
@@ -1717,6 +1731,14 @@ function App() {
           You need to create a freezer before you can add items.
         </p>
       </Modal>
+
+      {/* AI Assistant Modal */}
+      <AIAssistantModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
+        onInventoryChanged={loadData}
+        onOpenSettings={() => setCurrentView('settings')}
+      />
     </div>
   );
 }

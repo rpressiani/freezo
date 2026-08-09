@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/riccardo/freezo/backend/internal/ai"
 	"github.com/riccardo/freezo/backend/internal/db"
+	"github.com/riccardo/freezo/backend/internal/mcp"
 	"github.com/riccardo/freezo/backend/internal/models"
 )
 
@@ -514,3 +516,62 @@ func ResetDatabase(w http.ResponseWriter, r *http.Request) {
 
 	jsonResponse(w, http.StatusOK, map[string]string{"message": "Database reset successfully"})
 }
+
+// --- MCP & AI ---
+
+func HandleMCP(w http.ResponseWriter, r *http.Request) {
+	mcp.HandleMCP(w, r)
+}
+
+func ProcessAIPrompt(w http.ResponseWriter, r *http.Request) {
+	var req ai.AIProcessRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Prompt) == "" {
+		http.Error(w, "Invalid or empty prompt", http.StatusBadRequest)
+		return
+	}
+
+	resp, err := ai.ProcessPrompt(req.Prompt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, resp)
+}
+
+func ExecuteAIActions(w http.ResponseWriter, r *http.Request) {
+	var req ai.AIExecuteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Actions) == 0 {
+		http.Error(w, "Invalid or empty actions request", http.StatusBadRequest)
+		return
+	}
+
+	resp, err := ai.ExecuteActions(req.Actions)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, resp)
+}
+
+func GetAIConfig(w http.ResponseWriter, r *http.Request) {
+	cfg := ai.GetConfig()
+	jsonResponse(w, http.StatusOK, cfg)
+}
+
+func UpdateAIConfig(w http.ResponseWriter, r *http.Request) {
+	var cfg ai.Config
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := ai.UpdateConfig(cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, ai.GetConfig())
+}
+

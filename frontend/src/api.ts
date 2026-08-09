@@ -213,4 +213,73 @@ export const api = {
             throw new Error(text || 'Failed to reset database');
         }
     },
+
+    processAIPrompt: async (prompt: string): Promise<AIProcessResponse> => {
+        const res = await fetch(`${BASE_URL}/ai/process`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt }),
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to process AI prompt');
+        }
+        return res.json();
+    },
+
+    executeAIActions: async (actions: AIActionResult[]): Promise<AIProcessResponse> => {
+        const res = await fetch(`${BASE_URL}/ai/execute`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actions }),
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to execute AI actions');
+        }
+        return res.json();
+    },
+
+    getAIConfig: async (): Promise<AIConfig> => {
+        const res = await fetch(`${BASE_URL}/ai/config`);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to get AI config');
+        }
+        return res.json();
+    },
+
+    updateAIConfig: async (config: AIConfig): Promise<AIConfig> => {
+        const res = await fetch(`${BASE_URL}/ai/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config),
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to update AI config');
+        }
+        return res.json();
+    },
 };
+
+export interface AIConfig {
+    base_url: string;
+    api_key: string;
+    model: string;
+}
+
+export interface AIActionResult {
+    tool_name: string;
+    args: any;
+    summary?: string;
+    output?: string;
+}
+
+export interface AIProcessResponse {
+    message: string;
+    actions: AIActionResult[];
+    pending_confirmation?: boolean;
+}
+
+
