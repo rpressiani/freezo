@@ -11,10 +11,23 @@ export interface Item {
     weight?: string;
     frozen_date?: string;
 }
+export interface Category {
+    id: number;
+    name: string;
+}
 
 const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8080/api' : '/api');
 
 export const api = {
+    getCategories: async (): Promise<Category[]> => {
+        const res = await fetch(`${BASE_URL}/categories`);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to fetch categories');
+        }
+        return res.json();
+    },
+
     getFreezers: async (): Promise<Freezer[]> => {
         const res = await fetch(`${BASE_URL}/freezers`);
         if (!res.ok) {

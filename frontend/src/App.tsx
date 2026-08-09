@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow, isToday, isYesterday, parse, format } from 'date-fns';
-import { api, type Freezer, type Item } from './api';
-import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft } from 'lucide-react';
+import { api, type Freezer, type Item, type Category } from './api';
+import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, Tag } from 'lucide-react';
 import { Modal } from './components/Modal';
 
 interface DateGroup {
@@ -15,9 +15,22 @@ interface ItemGroup {
   name: string;
   totalQuantity: number;
   dateGroups: DateGroup[];
+  categoryId: number;
 }
 
 type WeightMode = 'none' | 'same' | 'individual';
+
+function getCategoryIcon(categoryId: number, categories: Category[]) {
+  const cat = categories.find(c => c.id === categoryId);
+  const name = cat?.name.toLowerCase() || '';
+  if (name.includes('pork')) return <PiggyBank className="w-6 h-6 text-pink-600" />;
+  if (name.includes('seafood')) return <Fish className="w-6 h-6 text-blue-500" />;
+  if (name.includes('beef')) return <Beef className="w-6 h-6 text-red-600" />;
+  if (name.includes('poultry')) return <Drumstick className="w-6 h-6 text-amber-600" />;
+  if (name.includes('bread')) return <Croissant className="w-6 h-6 text-yellow-600" />;
+  if (name.includes('uncategorized')) return <Tag className="w-6 h-6 text-gray-500" />;
+  return <Package className="w-6 h-6 text-orange-600" />;
+}
 
 function getRelativeTime(dateStr: string): string {
   // Parse YYYY-MM-DD as local date to ensure isToday/isYesterday work correctly with local timeframe
@@ -33,6 +46,7 @@ function App() {
   const [currentView, setCurrentView] = useState<'items' | 'settings'>('items');
   const [freezers, setFreezers] = useState<Freezer[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedFreezerFilter, setSelectedFreezerFilter] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +103,7 @@ function App() {
     name: '',
     quantity: 1 as number | string,
     freezerId: 0,
+    categoryId: 1,
     frozenDate: format(new Date(), 'yyyy-MM-dd'),
     weightMode: 'none' as WeightMode,
     commonWeight: '',
@@ -98,9 +113,10 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [f, i] = await Promise.all([api.getFreezers(), api.getItems()]);
+      const [f, i, c] = await Promise.all([api.getFreezers(), api.getItems(), api.getCategories()]);
       setFreezers(f);
       setItems(i);
+      setCategories(c);
       setError(null);
     } catch (err) {
       console.error(err);
@@ -121,7 +137,7 @@ function App() {
 
   const itemGroups: ItemGroup[] = Object.values(filteredItems.reduce((acc, item) => {
     if (!acc[item.name]) {
-      acc[item.name] = { name: item.name, totalQuantity: 0, dateGroups: [] };
+      acc[item.name] = { name: item.name, totalQuantity: 0, dateGroups: [], categoryId: item.category_id };
     }
 
     const dateKey = item.frozen_date ? item.frozen_date.split('T')[0] : 'No Date';
@@ -186,6 +202,7 @@ function App() {
       name: prefillName || '',
       quantity: 1,
       freezerId: freezers[0].id,
+      categoryId: 1,
       frozenDate: format(new Date(), 'yyyy-MM-dd'),
       weightMode: 'none',
       commonWeight: '',
@@ -302,7 +319,7 @@ function App() {
 
         itemsToCreate.push({
           name: itemForm.name,
-          category_id: 1,
+          category_id: itemForm.categoryId,
           freezer_id: itemForm.freezerId,
           weight: weight || undefined,
           frozen_date: itemForm.frozenDate ? new Date(itemForm.frozenDate).toISOString() : undefined,
@@ -616,8 +633,8 @@ function App() {
                       onClick={() => toggleGroup(group.name)}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="bg-orange-100 p-2 rounded-lg">
-                          <Package className="w-6 h-6 text-orange-600" />
+                        <div className="bg-gray-50 border border-gray-100 p-2 rounded-lg">
+                          {getCategoryIcon(group.categoryId, categories)}
                         </div>
                         <div>
                           <h3 className="font-semibold text-lg">{group.name}</h3>
@@ -1023,6 +1040,17 @@ function App() {
                 {freezers.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <select
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none mb-4"
+              value={itemForm.categoryId}
+              onChange={e => setItemForm({ ...itemForm, categoryId: parseInt(e.target.value) })}
+            >
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
 
           <div>

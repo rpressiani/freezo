@@ -76,18 +76,23 @@ func createTables() {
 }
 
 func seedData() {
-	var count int
-	row := DB.QueryRow("SELECT COUNT(*) FROM categories")
-	if err := row.Scan(&count); err != nil {
-		log.Println("Error checking categories:", err)
-		return
-	}
-	if count == 0 {
-		_, err := DB.Exec("INSERT INTO categories (name) VALUES ('Uncategorized')")
+	categories := []string{"Uncategorized", "Pork", "Seafood", "Beef", "Poultry", "Bread"}
+
+	for _, name := range categories {
+		var count int
+		err := DB.QueryRow("SELECT COUNT(*) FROM categories WHERE name = ?", name).Scan(&count)
 		if err != nil {
-			log.Println("Error seeding categories:", err)
-		} else {
-			log.Println("Seeded 'Uncategorized' category")
+			log.Println("Error checking category:", name, err)
+			continue
+		}
+
+		if count == 0 {
+			_, err := DB.Exec("INSERT INTO categories (name) VALUES (?)", name)
+			if err != nil {
+				log.Println("Error seeding category:", name, err)
+			} else {
+				log.Println("Seeded category:", name)
+			}
 		}
 	}
 }
