@@ -93,6 +93,16 @@ function App() {
 
   const [notificationModal, setNotificationModal] = useState({ isOpen: false, title: '', message: '', type: 'success' as 'success' | 'error' });
 
+  // Category Edit Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryModalContext, setCategoryModalContext] = useState<{
+    groupName: string;
+    itemIds: number[];
+    currentCategoryId: number;
+  } | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
+
   // Form States
   const [freezerName, setFreezerName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -461,6 +471,39 @@ function App() {
     }
   };
 
+  const openCategoryModal = (group: ItemGroup) => {
+    const groupItems = items.filter(i => i.name === group.name);
+    const itemIds = groupItems.map(i => i.id);
+    setCategoryModalContext({
+      groupName: group.name,
+      itemIds,
+      currentCategoryId: group.categoryId,
+    });
+    setSelectedCategoryId(group.categoryId);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleUpdateCategory = async (targetCategoryId: number) => {
+    if (!categoryModalContext) return;
+    try {
+      setIsUpdatingCategory(true);
+      setSelectedCategoryId(targetCategoryId);
+      await api.updateItemsCategory(categoryModalContext.itemIds, targetCategoryId);
+      await loadData();
+      setIsCategoryModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      setNotificationModal({
+        isOpen: true,
+        title: 'Error',
+        message: err?.message || 'Failed to update category',
+        type: 'error'
+      });
+    } finally {
+      setIsUpdatingCategory(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24">
       {/* Header */}
@@ -633,9 +676,17 @@ function App() {
                       onClick={() => toggleGroup(group.name)}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="bg-gray-50 border border-gray-100 p-2 rounded-lg">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCategoryModal(group);
+                          }}
+                          className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-cyan-50 hover:border-cyan-300 hover:scale-105 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          title="Click to change category"
+                        >
                           {getCategoryIcon(group.categoryId, categories)}
-                        </div>
+                        </button>
                         <div>
                           <h3 className="font-semibold text-lg">{group.name}</h3>
                           <p className="text-gray-500 text-sm">{group.totalQuantity} total items</p>
@@ -922,6 +973,43 @@ function App() {
         </div>
       </Modal>
 
+      {/* Change Category Modal */}
+      <Modal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        title="Change Category"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Select a category for <strong className="text-gray-900">{categoryModalContext?.groupName}</strong>:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {categories.map(cat => {
+              const isCurrent = categoryModalContext?.currentCategoryId === cat.id;
+              const isUpdatingThis = isUpdatingCategory && selectedCategoryId === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  disabled={isUpdatingCategory}
+                  onClick={() => handleUpdateCategory(cat.id)}
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer text-center ${
+                    isCurrent
+                      ? 'border-cyan-600 bg-cyan-50/80 text-cyan-900 ring-2 ring-cyan-500/20 font-medium shadow-sm'
+                      : 'border-gray-200 hover:border-cyan-400 hover:bg-cyan-50/30 text-gray-700'
+                  } ${isUpdatingCategory ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="p-2 rounded-lg bg-white shadow-xs border border-gray-100">
+                    {getCategoryIcon(cat.id, categories)}
+                  </div>
+                  <span className="text-sm">{isUpdatingThis ? 'Saving...' : cat.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
+
       {/* Add Item Modal */}
       <Modal
         isOpen={isAddItemOpen}
@@ -1044,13 +1132,26 @@ function App() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none mb-4"
-              value={itemForm.categoryId}
-              onChange={e => setItemForm({ ...itemForm, categoryId: parseInt(e.target.value) })}
-            >
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+              {categories.map(c => {
+                const isSelected = itemForm.categoryId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setItemForm({ ...itemForm, categoryId: c.id })}
+                    className={`p-2.5 rounded-lg border flex items-center gap-2 text-xs font-medium transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-cyan-600 bg-cyan-50 text-cyan-900 ring-1 ring-cyan-500/20 shadow-xs'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <div className="shrink-0">{getCategoryIcon(c.id, categories)}</div>
+                    <span className="truncate">{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div>

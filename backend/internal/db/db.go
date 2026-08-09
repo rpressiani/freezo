@@ -16,10 +16,13 @@ func InitDB(dataSourceName string) {
 	// Enable WAL mode and set a busy timeout to handle concurrent writes
 	// _busy_timeout=5000: Wait up to 5000ms before erroring with SQLITE_BUSY
 	// _journal_mode=WAL: Write-Ahead Logging allows better concurrency
-	DB, err = sql.Open("sqlite", dataSourceName+"?_busy_timeout=5000&_journal_mode=WAL")
+	DB, err = sql.Open("sqlite", dataSourceName+"?_busy_timeout=5000&_journal_mode=WAL&_synchronous=NORMAL")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// SQLite supports single writer only; limit open connections to 1 to serialize writes and prevent SQLITE_BUSY
+	DB.SetMaxOpenConns(1)
 
 	if err = DB.Ping(); err != nil {
 		log.Fatal(err)

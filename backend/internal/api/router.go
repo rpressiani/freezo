@@ -33,6 +33,7 @@ func NewRouter() *chi.Mux {
 			r.Post("/batch", CreateItemsBatch)
 			r.Post("/consume", ConsumeItemsBatch)
 			r.Post("/move", MoveItems)
+			r.Post("/category", UpdateItemsCategory)
 			r.Put("/{id}", UpdateItem)
 			r.Delete("/{id}", DeleteItem)
 		})

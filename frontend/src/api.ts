@@ -138,6 +138,18 @@ export const api = {
         }
     },
 
+    updateItemsCategory: async (itemIds: number[], categoryId: number): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/items/category`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_ids: itemIds, category_id: categoryId }),
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to update items category');
+        }
+    },
+
     exportDatabase: async (): Promise<void> => {
         const res = await fetch(`${BASE_URL}/database/export`);
         if (!res.ok) {

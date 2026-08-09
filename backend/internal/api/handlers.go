@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/riccardo/freezo/backend/internal/db"
@@ -296,6 +297,41 @@ func MoveItems(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse(w, http.StatusOK, map[string]string{"message": "items moved"})
+}
+
+type UpdateItemsCategoryRequest struct {
+	ItemIDs    []int64 `json:"item_ids"`
+	CategoryID int64   `json:"category_id"`
+}
+
+func UpdateItemsCategory(w http.ResponseWriter, r *http.Request) {
+	var req UpdateItemsCategoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if len(req.ItemIDs) == 0 {
+		http.Error(w, "No items to update", http.StatusBadRequest)
+		return
+	}
+
+	query := fmt.Sprintf("UPDATE items SET category_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id IN (%s)",
+		strings.TrimRight(strings.Repeat("?,", len(req.ItemIDs)), ","))
+
+	args := make([]interface{}, len(req.ItemIDs)+1)
+	args[0] = req.CategoryID
+	for i, id := range req.ItemIDs {
+		args[i+1] = id
+	}
+
+	_, err := db.DB.Exec(query, args...)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	jsonResponse(w, http.StatusOK, map[string]string{"message": "category updated"})
 }
 
 // --- Categories ---
