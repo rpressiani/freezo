@@ -33,6 +33,7 @@ func NewRouter() *chi.Mux {
 			r.Post("/batch", CreateItemsBatch)
 			r.Post("/consume", ConsumeItemsBatch)
 			r.Post("/move", MoveItems)
+			r.Post("/category", UpdateItemsCategory)
 			r.Put("/{id}", UpdateItem)
 			r.Delete("/{id}", DeleteItem)
 		})
@@ -40,6 +41,7 @@ func NewRouter() *chi.Mux {
 		r.Route("/categories", func(r chi.Router) {
 			r.Get("/", GetCategories)
 			r.Post("/", CreateCategory)
+			r.Delete("/{id}", DeleteCategory)
 		})
 
 		r.Route("/database", func(r chi.Router) {

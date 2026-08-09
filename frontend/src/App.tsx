@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow, isToday, isYesterday, parse, format } from 'date-fns';
-import { api, type Freezer, type Item } from './api';
-import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft } from 'lucide-react';
+import { api, type Freezer, type Item, type Category } from './api';
+import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, Tag, Apple, Carrot, Pizza, IceCream, Cookie, Soup, CupSoda, Milk, Egg } from 'lucide-react';
 import { Modal } from './components/Modal';
 
 interface DateGroup {
@@ -15,9 +15,77 @@ interface ItemGroup {
   name: string;
   totalQuantity: number;
   dateGroups: DateGroup[];
+  categoryId: number;
 }
 
 type WeightMode = 'none' | 'same' | 'individual';
+
+const AVAILABLE_CATEGORY_ICONS = [
+  { key: 'tag', label: 'Tag', icon: Tag, color: 'text-gray-500' },
+  { key: 'piggy-bank', label: 'Pork', icon: PiggyBank, color: 'text-pink-600' },
+  { key: 'fish', label: 'Fish', icon: Fish, color: 'text-blue-500' },
+  { key: 'beef', label: 'Beef', icon: Beef, color: 'text-red-600' },
+  { key: 'drumstick', label: 'Poultry', icon: Drumstick, color: 'text-amber-600' },
+  { key: 'croissant', label: 'Bread', icon: Croissant, color: 'text-yellow-600' },
+  { key: 'apple', label: 'Fruit', icon: Apple, color: 'text-red-500' },
+  { key: 'carrot', label: 'Veggies', icon: Carrot, color: 'text-orange-500' },
+  { key: 'pizza', label: 'Meals', icon: Pizza, color: 'text-amber-500' },
+  { key: 'ice-cream', label: 'Dessert', icon: IceCream, color: 'text-pink-400' },
+  { key: 'cookie', label: 'Sweets', icon: Cookie, color: 'text-amber-700' },
+  { key: 'soup', label: 'Soup', icon: Soup, color: 'text-yellow-700' },
+  { key: 'cup-soda', label: 'Drinks', icon: CupSoda, color: 'text-cyan-500' },
+  { key: 'milk', label: 'Dairy', icon: Milk, color: 'text-blue-400' },
+  { key: 'egg', label: 'Egg', icon: Egg, color: 'text-yellow-500' },
+  { key: 'package', label: 'Package', icon: Package, color: 'text-orange-600' },
+];
+
+const PREDEFINED_FREEZER_CATEGORIES = [
+  { name: 'Pork', icon: 'piggy-bank' },
+  { name: 'Beef', icon: 'beef' },
+  { name: 'Poultry', icon: 'drumstick' },
+  { name: 'Seafood', icon: 'fish' },
+  { name: 'Veggies', icon: 'carrot' },
+  { name: 'Fruit', icon: 'apple' },
+  { name: 'Bread & Bakery', icon: 'croissant' },
+  { name: 'Prepared Meals', icon: 'pizza' },
+  { name: 'Ice Cream & Desserts', icon: 'ice-cream' },
+  { name: 'Soups & Stews', icon: 'soup' },
+  { name: 'Sweets & Treats', icon: 'cookie' },
+  { name: 'Beverages', icon: 'cup-soda' },
+  { name: 'Dairy', icon: 'milk' },
+  { name: 'Eggs', icon: 'egg' },
+  { name: 'Other', icon: 'package' },
+];
+
+function renderCategoryIconByKey(iconKey: string, className: string = "w-5 h-5") {
+  const found = AVAILABLE_CATEGORY_ICONS.find(i => i.key === iconKey);
+  if (!found) return <Package className={`${className} text-orange-600`} />;
+  const IconComponent = found.icon;
+  return <IconComponent className={`${className} ${found.color}`} />;
+}
+
+function getCategoryIcon(categoryId: number, categories: Category[], className: string = "w-6 h-6") {
+  const cat = categories.find(c => c.id === categoryId);
+  const icon = cat?.icon?.toLowerCase() || '';
+  const name = cat?.name.toLowerCase() || '';
+
+  if (icon === 'piggy-bank' || (!icon && name.includes('pork'))) return <PiggyBank className={`${className} text-pink-600`} />;
+  if (icon === 'fish' || (!icon && name.includes('seafood'))) return <Fish className={`${className} text-blue-500`} />;
+  if (icon === 'beef' || (!icon && name.includes('beef'))) return <Beef className={`${className} text-red-600`} />;
+  if (icon === 'drumstick' || (!icon && name.includes('poultry'))) return <Drumstick className={`${className} text-amber-600`} />;
+  if (icon === 'croissant' || (!icon && name.includes('bread'))) return <Croissant className={`${className} text-yellow-600`} />;
+  if (icon === 'apple' || (!icon && name.includes('fruit'))) return <Apple className={`${className} text-red-500`} />;
+  if (icon === 'carrot' || (!icon && name.includes('veg'))) return <Carrot className={`${className} text-orange-500`} />;
+  if (icon === 'pizza' || (!icon && (name.includes('pizza') || name.includes('meal')))) return <Pizza className={`${className} text-amber-500`} />;
+  if (icon === 'ice-cream' || (!icon && (name.includes('ice') || name.includes('dessert')))) return <IceCream className={`${className} text-pink-400`} />;
+  if (icon === 'cookie' || (!icon && name.includes('sweet'))) return <Cookie className={`${className} text-amber-700`} />;
+  if (icon === 'soup' || (!icon && name.includes('soup'))) return <Soup className={`${className} text-yellow-700`} />;
+  if (icon === 'cup-soda' || (!icon && name.includes('drink'))) return <CupSoda className={`${className} text-cyan-500`} />;
+  if (icon === 'milk' || (!icon && name.includes('dairy'))) return <Milk className={`${className} text-blue-400`} />;
+  if (icon === 'egg' || (!icon && name.includes('egg'))) return <Egg className={`${className} text-yellow-500`} />;
+  if (icon === 'tag' || (!icon && name.includes('uncategorized'))) return <Tag className={`${className} text-gray-500`} />;
+  return <Package className={`${className} text-orange-600`} />;
+}
 
 function getRelativeTime(dateStr: string): string {
   // Parse YYYY-MM-DD as local date to ensure isToday/isYesterday work correctly with local timeframe
@@ -33,7 +101,9 @@ function App() {
   const [currentView, setCurrentView] = useState<'items' | 'settings'>('items');
   const [freezers, setFreezers] = useState<Freezer[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedFreezerFilter, setSelectedFreezerFilter] = useState<number | null>(null);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -79,6 +149,21 @@ function App() {
 
   const [notificationModal, setNotificationModal] = useState({ isOpen: false, title: '', message: '', type: 'success' as 'success' | 'error' });
 
+  // Category Management States
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+
+  // Category Edit Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryModalContext, setCategoryModalContext] = useState<{
+    groupName: string;
+    itemIds: number[];
+    currentCategoryId: number;
+  } | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
+
   // Form States
   const [freezerName, setFreezerName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -89,6 +174,7 @@ function App() {
     name: '',
     quantity: 1 as number | string,
     freezerId: 0,
+    categoryId: 1,
     frozenDate: format(new Date(), 'yyyy-MM-dd'),
     weightMode: 'none' as WeightMode,
     commonWeight: '',
@@ -98,9 +184,10 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [f, i] = await Promise.all([api.getFreezers(), api.getItems()]);
+      const [f, i, c] = await Promise.all([api.getFreezers(), api.getItems(), api.getCategories()]);
       setFreezers(f);
       setItems(i);
+      setCategories(c);
       setError(null);
     } catch (err) {
       console.error(err);
@@ -115,13 +202,15 @@ function App() {
   }, []);
 
   // Group items by Name -> Expiry Date
-  const filteredItems = selectedFreezerFilter
-    ? items.filter(i => i.freezer_id === selectedFreezerFilter)
-    : items;
+  const filteredItems = items.filter(i => {
+    if (selectedFreezerFilter && i.freezer_id !== selectedFreezerFilter) return false;
+    if (selectedCategoryFilter && i.category_id !== selectedCategoryFilter) return false;
+    return true;
+  });
 
   const itemGroups: ItemGroup[] = Object.values(filteredItems.reduce((acc, item) => {
     if (!acc[item.name]) {
-      acc[item.name] = { name: item.name, totalQuantity: 0, dateGroups: [] };
+      acc[item.name] = { name: item.name, totalQuantity: 0, dateGroups: [], categoryId: item.category_id };
     }
 
     const dateKey = item.frozen_date ? item.frozen_date.split('T')[0] : 'No Date';
@@ -177,15 +266,17 @@ function App() {
 
   const openAddItemModal = (prefillName?: string) => {
     if (freezers.length === 0) {
-      if (freezers.length === 0) {
-        setIsNoFreezerWarningOpen(true);
-        return;
-      }
+      setIsNoFreezerWarningOpen(true);
+      return;
     }
+    const existingItem = prefillName ? items.find(i => i.name.toLowerCase() === prefillName.toLowerCase()) : null;
+    const catId = existingItem ? existingItem.category_id : 1;
+
     setItemForm({
       name: prefillName || '',
       quantity: 1,
       freezerId: freezers[0].id,
+      categoryId: catId,
       frozenDate: format(new Date(), 'yyyy-MM-dd'),
       weightMode: 'none',
       commonWeight: '',
@@ -207,6 +298,28 @@ function App() {
       loadData();
     } catch (err) {
       alert('Failed to create freezer');
+    }
+  };
+
+  const handleCreatePredefinedCategory = async (name: string, icon: string) => {
+    try {
+      await api.createCategory(name, icon);
+      setIsAddCategoryOpen(false);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to create category');
+    }
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    try {
+      await api.deleteCategory(categoryToDelete.id);
+      setIsDeleteCategoryModalOpen(false);
+      setCategoryToDelete(null);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete category');
     }
   };
 
@@ -302,7 +415,7 @@ function App() {
 
         itemsToCreate.push({
           name: itemForm.name,
-          category_id: 1,
+          category_id: itemForm.categoryId,
           freezer_id: itemForm.freezerId,
           weight: weight || undefined,
           frozen_date: itemForm.frozenDate ? new Date(itemForm.frozenDate).toISOString() : undefined,
@@ -444,6 +557,39 @@ function App() {
     }
   };
 
+  const openCategoryModal = (group: ItemGroup) => {
+    const groupItems = items.filter(i => i.name === group.name);
+    const itemIds = groupItems.map(i => i.id);
+    setCategoryModalContext({
+      groupName: group.name,
+      itemIds,
+      currentCategoryId: group.categoryId,
+    });
+    setSelectedCategoryId(group.categoryId);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleUpdateCategory = async (targetCategoryId: number) => {
+    if (!categoryModalContext) return;
+    try {
+      setIsUpdatingCategory(true);
+      setSelectedCategoryId(targetCategoryId);
+      await api.updateItemsCategory(categoryModalContext.itemIds, targetCategoryId);
+      await loadData();
+      setIsCategoryModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      setNotificationModal({
+        isOpen: true,
+        title: 'Error',
+        message: err?.message || 'Failed to update category',
+        type: 'error'
+      });
+    } finally {
+      setIsUpdatingCategory(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-24">
       {/* Header */}
@@ -546,6 +692,62 @@ function App() {
                 </div>
 
                 <div className="pt-8 border-t border-gray-200 mt-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-700">Manage Categories</h2>
+                      <p className="text-sm text-gray-500">Add custom categories or remove unused ones.</p>
+                    </div>
+                    <button
+                      onClick={() => setIsAddCategoryOpen(true)}
+                      className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Category
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {categories.map(c => {
+                      const itemCount = items.filter(i => i.category_id === c.id).length;
+                      const isUncategorized = c.name.toLowerCase() === 'uncategorized';
+
+                      return (
+                        <div
+                          key={c.id}
+                          className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                              {getCategoryIcon(c.id, categories)}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{c.name}</h3>
+                              <p className="text-xs text-gray-400 mt-0.5">{itemCount} item{itemCount === 1 ? '' : 's'}</p>
+                            </div>
+                          </div>
+                          {!isUncategorized && (
+                            <button
+                              onClick={() => {
+                                setCategoryToDelete(c);
+                                setIsDeleteCategoryModalOpen(true);
+                              }}
+                              disabled={itemCount > 0}
+                              className={`transition-colors p-2 rounded-lg ${
+                                itemCount > 0
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-80 group-hover:opacity-100 cursor-pointer'
+                              }`}
+                              title={itemCount > 0 ? 'Cannot delete category with items assigned to it' : 'Delete category'}
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-8 border-t border-gray-200 mt-8">
                   <h2 className="text-lg font-semibold text-gray-700 mb-4">Backup & Restore</h2>
                   <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -593,19 +795,85 @@ function App() {
             ) : (
               // Items View
               <div className="space-y-4">
-                {selectedFreezerFilter && (
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center gap-3 text-blue-800">
-                      <Snowflake className="w-5 h-5" />
-                      <span className="font-medium">
-                        Viewing items in <strong>{freezers.find(f => f.id === selectedFreezerFilter)?.name}</strong>
-                      </span>
+                {/* Category Filter Pills */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter(null)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                      selectedCategoryFilter === null
+                        ? 'bg-cyan-600 text-white shadow-xs font-semibold'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Tag className="w-3.5 h-3.5" />
+                    All Categories
+                  </button>
+                  {categories.map(cat => {
+                    const isSelected = selectedCategoryFilter === cat.id;
+                    const count = items.filter(i => (selectedFreezerFilter ? i.freezer_id === selectedFreezerFilter : true) && i.category_id === cat.id).length;
+                    if (count === 0) return null;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategoryFilter(isSelected ? null : cat.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-cyan-600 text-white shadow-xs font-semibold'
+                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="shrink-0">{getCategoryIcon(cat.id, categories, "w-3.5 h-3.5")}</div>
+                        <span>{cat.name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-cyan-700 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active Filter Banner */}
+                {(selectedFreezerFilter || selectedCategoryFilter) && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-blue-900">
+                      <span className="font-medium text-blue-700">Active Filters:</span>
+                      {selectedFreezerFilter && (
+                        <span className="inline-flex items-center gap-1.5 bg-white border border-blue-200 text-blue-800 px-2.5 py-1 rounded-lg text-xs font-medium shadow-2xs">
+                          <Snowflake className="w-3.5 h-3.5 text-cyan-600" />
+                          Freezer: {freezers.find(f => f.id === selectedFreezerFilter)?.name}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFreezerFilter(null)}
+                            className="hover:text-red-500 ml-1 font-bold cursor-pointer"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      )}
+                      {selectedCategoryFilter && (
+                        <span className="inline-flex items-center gap-1.5 bg-white border border-blue-200 text-blue-800 px-2.5 py-1 rounded-lg text-xs font-medium shadow-2xs">
+                          {getCategoryIcon(selectedCategoryFilter, categories, "w-3.5 h-3.5")}
+                          Category: {categories.find(c => c.id === selectedCategoryFilter)?.name}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCategoryFilter(null)}
+                            className="hover:text-red-500 ml-1 font-bold cursor-pointer"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      )}
                     </div>
                     <button
-                      onClick={() => setSelectedFreezerFilter(null)}
-                      className="text-sm bg-white hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors font-medium"
+                      onClick={() => {
+                        setSelectedFreezerFilter(null);
+                        setSelectedCategoryFilter(null);
+                      }}
+                      className="text-xs bg-white hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg border border-blue-200 transition-colors font-medium cursor-pointer"
                     >
-                      Clear Filter
+                      Clear All Filters
                     </button>
                   </div>
                 )}
@@ -616,9 +884,17 @@ function App() {
                       onClick={() => toggleGroup(group.name)}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="bg-orange-100 p-2 rounded-lg">
-                          <Package className="w-6 h-6 text-orange-600" />
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCategoryModal(group);
+                          }}
+                          className="p-2 rounded-lg bg-gray-50 border border-gray-200 hover:bg-cyan-50 hover:border-cyan-300 hover:scale-105 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                          title="Click to change category"
+                        >
+                          {getCategoryIcon(group.categoryId, categories)}
+                        </button>
                         <div>
                           <h3 className="font-semibold text-lg">{group.name}</h3>
                           <p className="text-gray-500 text-sm">{group.totalQuantity} total items</p>
@@ -714,8 +990,8 @@ function App() {
                 ))}
                 {filteredItems.length === 0 && (
                   <div className="text-center py-12 text-gray-500">
-                    {selectedFreezerFilter
-                      ? "No items in this freezer."
+                    {(selectedFreezerFilter || selectedCategoryFilter)
+                      ? "No items match the selected filters."
                       : "No items found. Tap the + button to add one!"}
                   </div>
                 )}
@@ -826,6 +1102,66 @@ function App() {
         </div>
       </Modal>
 
+      {/* Add Category Modal */}
+      <Modal
+        isOpen={isAddCategoryOpen}
+        onClose={() => setIsAddCategoryOpen(false)}
+        title="Add Category"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Select a freezer category to add to your inventory:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto p-1">
+            {PREDEFINED_FREEZER_CATEGORIES.map(preset => {
+              const isAlreadyAdded = categories.some(
+                c => c.name.toLowerCase() === preset.name.toLowerCase()
+              );
+              return (
+                <button
+                  key={preset.name}
+                  type="button"
+                  disabled={isAlreadyAdded}
+                  onClick={() => handleCreatePredefinedCategory(preset.name, preset.icon)}
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer text-center ${
+                    isAlreadyAdded
+                      ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                      : 'border-gray-200 bg-white hover:border-cyan-500 hover:bg-cyan-50/40 text-gray-700 shadow-2xs hover:shadow-xs'
+                  }`}
+                >
+                  <div className="p-2 rounded-lg bg-gray-50 border border-gray-100 shrink-0">
+                    {renderCategoryIconByKey(preset.icon, "w-6 h-6")}
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 w-full">
+                    <span className="text-xs font-medium truncate">{preset.name}</span>
+                    {isAlreadyAdded && <span className="text-xs text-green-600 font-bold">✓</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Category Modal */}
+      <Modal
+        isOpen={isDeleteCategoryModalOpen}
+        onClose={() => setIsDeleteCategoryModalOpen(false)}
+        title="Delete Category"
+        footer={
+          <>
+            <button onClick={() => setIsDeleteCategoryModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer">Cancel</button>
+            <button onClick={confirmDeleteCategory} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 cursor-pointer">Delete</button>
+          </>
+        }
+      >
+        <p className="text-gray-600">
+          Are you sure you want to delete category <strong>{categoryToDelete?.name}</strong>?
+          <br /><br />
+          This action cannot be undone.
+        </p>
+      </Modal>
+
       {/* Reset Confirmation Modal */}
       <Modal
         isOpen={isResetConfirmOpen}
@@ -902,6 +1238,43 @@ function App() {
             </div>
           )}
           <p className="text-gray-600">{notificationModal.message}</p>
+        </div>
+      </Modal>
+
+      {/* Change Category Modal */}
+      <Modal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        title="Change Category"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Select a category for <strong className="text-gray-900">{categoryModalContext?.groupName}</strong>:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {categories.map(cat => {
+              const isCurrent = categoryModalContext?.currentCategoryId === cat.id;
+              const isUpdatingThis = isUpdatingCategory && selectedCategoryId === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  disabled={isUpdatingCategory}
+                  onClick={() => handleUpdateCategory(cat.id)}
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer text-center ${
+                    isCurrent
+                      ? 'border-cyan-600 bg-cyan-50/80 text-cyan-900 ring-2 ring-cyan-500/20 font-medium shadow-sm'
+                      : 'border-gray-200 hover:border-cyan-400 hover:bg-cyan-50/30 text-gray-700'
+                  } ${isUpdatingCategory ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="p-2 rounded-lg bg-white shadow-xs border border-gray-100">
+                    {getCategoryIcon(cat.id, categories)}
+                  </div>
+                  <span className="text-sm">{isUpdatingThis ? 'Saving...' : cat.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </Modal>
 
@@ -1024,6 +1397,32 @@ function App() {
               </select>
             </div>
           </div>
+
+          {!isNameLocked && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+                {categories.map(c => {
+                  const isSelected = itemForm.categoryId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setItemForm({ ...itemForm, categoryId: c.id })}
+                      className={`p-2.5 rounded-lg border flex items-center gap-2 text-xs font-medium transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-cyan-600 bg-cyan-50 text-cyan-900 ring-1 ring-cyan-500/20 shadow-xs'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <div className="shrink-0">{getCategoryIcon(c.id, categories)}</div>
+                      <span className="truncate">{c.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date Frozen</label>

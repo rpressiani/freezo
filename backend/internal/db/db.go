@@ -16,10 +16,13 @@ func InitDB(dataSourceName string) {
 	// Enable WAL mode and set a busy timeout to handle concurrent writes
 	// _busy_timeout=5000: Wait up to 5000ms before erroring with SQLITE_BUSY
 	// _journal_mode=WAL: Write-Ahead Logging allows better concurrency
-	DB, err = sql.Open("sqlite", dataSourceName+"?_busy_timeout=5000&_journal_mode=WAL")
+	DB, err = sql.Open("sqlite", dataSourceName+"?_busy_timeout=5000&_journal_mode=WAL&_synchronous=NORMAL")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// SQLite supports single writer only; limit open connections to 1 to serialize writes and prevent SQLITE_BUSY
+	DB.SetMaxOpenConns(1)
 
 	if err = DB.Ping(); err != nil {
 		log.Fatal(err)
@@ -40,7 +43,8 @@ func createTables() {
 	createCategoryTable := `
 	CREATE TABLE IF NOT EXISTS categories (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL UNIQUE
+		name TEXT NOT NULL UNIQUE,
+		icon TEXT
 	);`
 
 	createItemTable := `
@@ -67,6 +71,9 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	// Migration: Add icon column if existing database table doesn't have it yet
+	_, _ = DB.Exec("ALTER TABLE categories ADD COLUMN icon TEXT;")
+
 	_, err = DB.Exec(createItemTable)
 	if err != nil {
 		log.Fatal(err)
@@ -76,18 +83,32 @@ func createTables() {
 }
 
 func seedData() {
-	var count int
-	row := DB.QueryRow("SELECT COUNT(*) FROM categories")
-	if err := row.Scan(&count); err != nil {
-		log.Println("Error checking categories:", err)
-		return
+	categorySeeds := []struct{ Name, Icon string }{
+		{"Uncategorized", "tag"},
+		{"Pork", "piggy-bank"},
+		{"Seafood", "fish"},
+		{"Beef", "beef"},
+		{"Poultry", "drumstick"},
+		{"Bread", "croissant"},
 	}
-	if count == 0 {
-		_, err := DB.Exec("INSERT INTO categories (name) VALUES ('Uncategorized')")
+
+	for _, seed := range categorySeeds {
+		var count int
+		err := DB.QueryRow("SELECT COUNT(*) FROM categories WHERE name = ?", seed.Name).Scan(&count)
 		if err != nil {
-			log.Println("Error seeding categories:", err)
+			log.Println("Error checking category:", seed.Name, err)
+			continue
+		}
+
+		if count == 0 {
+			_, err := DB.Exec("INSERT INTO categories (name, icon) VALUES (?, ?)", seed.Name, seed.Icon)
+			if err != nil {
+				log.Println("Error seeding category:", seed.Name, err)
+			} else {
+				log.Println("Seeded category:", seed.Name)
+			}
 		} else {
-			log.Println("Seeded 'Uncategorized' category")
+			_, _ = DB.Exec("UPDATE categories SET icon = ? WHERE name = ? AND (icon IS NULL OR icon = '')", seed.Icon, seed.Name)
 		}
 	}
 }
