@@ -41,6 +41,7 @@ func NewRouter() *chi.Mux {
 		r.Route("/categories", func(r chi.Router) {
 			r.Get("/", GetCategories)
 			r.Post("/", CreateCategory)
+			r.Delete("/{id}", DeleteCategory)
 		})
 
 		r.Route("/database", func(r chi.Router) {

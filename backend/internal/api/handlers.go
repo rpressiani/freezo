@@ -337,7 +337,7 @@ func UpdateItemsCategory(w http.ResponseWriter, r *http.Request) {
 // --- Categories ---
 
 func GetCategories(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.DB.Query("SELECT id, name FROM categories")
+	rows, err := db.DB.Query("SELECT id, name, COALESCE(icon, '') FROM categories")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -347,7 +347,7 @@ func GetCategories(w http.ResponseWriter, r *http.Request) {
 	categories := []models.Category{}
 	for rows.Next() {
 		var c models.Category
-		if err := rows.Scan(&c.ID, &c.Name); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Icon); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -363,7 +363,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := db.DB.Exec("INSERT INTO categories (name) VALUES (?)", c.Name)
+	res, err := db.DB.Exec("INSERT INTO categories (name, icon) VALUES (?, ?)", c.Name, c.Icon)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -372,6 +372,48 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	id, _ := res.LastInsertId()
 	c.ID = id
 	jsonResponse(w, http.StatusCreated, c)
+}
+
+func DeleteCategory(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, _ := strconv.Atoi(idStr)
+
+	// Prevent deleting the default "Uncategorized" category
+	var name string
+	err := db.DB.QueryRow("SELECT name FROM categories WHERE id = ?", id).Scan(&name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Category not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if strings.ToLower(name) == "uncategorized" {
+		http.Error(w, "Cannot delete the default Uncategorized category", http.StatusForbidden)
+		return
+	}
+
+	// Check if category has items
+	var count int
+	err = db.DB.QueryRow("SELECT COUNT(*) FROM items WHERE category_id = ?", id).Scan(&count)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if count > 0 {
+		http.Error(w, "Cannot delete category with items assigned to it", http.StatusConflict)
+		return
+	}
+
+	_, err = db.DB.Exec("DELETE FROM categories WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonResponse(w, http.StatusOK, map[string]string{"message": "category deleted"})
 }
 
 // --- Database Backup/Restore ---

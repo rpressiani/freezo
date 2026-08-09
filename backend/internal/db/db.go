@@ -43,7 +43,8 @@ func createTables() {
 	createCategoryTable := `
 	CREATE TABLE IF NOT EXISTS categories (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL UNIQUE
+		name TEXT NOT NULL UNIQUE,
+		icon TEXT
 	);`
 
 	createItemTable := `
@@ -70,6 +71,9 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	// Migration: Add icon column if existing database table doesn't have it yet
+	_, _ = DB.Exec("ALTER TABLE categories ADD COLUMN icon TEXT;")
+
 	_, err = DB.Exec(createItemTable)
 	if err != nil {
 		log.Fatal(err)
@@ -79,23 +83,32 @@ func createTables() {
 }
 
 func seedData() {
-	categories := []string{"Uncategorized", "Pork", "Seafood", "Beef", "Poultry", "Bread"}
+	categorySeeds := []struct{ Name, Icon string }{
+		{"Uncategorized", "tag"},
+		{"Pork", "piggy-bank"},
+		{"Seafood", "fish"},
+		{"Beef", "beef"},
+		{"Poultry", "drumstick"},
+		{"Bread", "croissant"},
+	}
 
-	for _, name := range categories {
+	for _, seed := range categorySeeds {
 		var count int
-		err := DB.QueryRow("SELECT COUNT(*) FROM categories WHERE name = ?", name).Scan(&count)
+		err := DB.QueryRow("SELECT COUNT(*) FROM categories WHERE name = ?", seed.Name).Scan(&count)
 		if err != nil {
-			log.Println("Error checking category:", name, err)
+			log.Println("Error checking category:", seed.Name, err)
 			continue
 		}
 
 		if count == 0 {
-			_, err := DB.Exec("INSERT INTO categories (name) VALUES (?)", name)
+			_, err := DB.Exec("INSERT INTO categories (name, icon) VALUES (?, ?)", seed.Name, seed.Icon)
 			if err != nil {
-				log.Println("Error seeding category:", name, err)
+				log.Println("Error seeding category:", seed.Name, err)
 			} else {
-				log.Println("Seeded category:", name)
+				log.Println("Seeded category:", seed.Name)
 			}
+		} else {
+			_, _ = DB.Exec("UPDATE categories SET icon = ? WHERE name = ? AND (icon IS NULL OR icon = '')", seed.Icon, seed.Name)
 		}
 	}
 }

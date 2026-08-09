@@ -14,6 +14,7 @@ export interface Item {
 export interface Category {
     id: number;
     name: string;
+    icon?: string;
 }
 
 const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8080/api' : '/api');
@@ -26,6 +27,27 @@ export const api = {
             throw new Error(text || 'Failed to fetch categories');
         }
         return res.json();
+    },
+
+    createCategory: async (name: string, icon?: string): Promise<Category> => {
+        const res = await fetch(`${BASE_URL}/categories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, icon }),
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to create category');
+        }
+        return res.json();
+    },
+
+    deleteCategory: async (id: number): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/categories/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Failed to delete category');
+        }
     },
 
     getFreezers: async (): Promise<Freezer[]> => {

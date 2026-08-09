@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow, isToday, isYesterday, parse, format } from 'date-fns';
 import { api, type Freezer, type Item, type Category } from './api';
-import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, Tag } from 'lucide-react';
+import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, Tag, Apple, Carrot, Pizza, IceCream, Cookie, Soup, CupSoda, Milk, Egg } from 'lucide-react';
 import { Modal } from './components/Modal';
 
 interface DateGroup {
@@ -20,15 +20,70 @@ interface ItemGroup {
 
 type WeightMode = 'none' | 'same' | 'individual';
 
+const AVAILABLE_CATEGORY_ICONS = [
+  { key: 'tag', label: 'Tag', icon: Tag, color: 'text-gray-500' },
+  { key: 'piggy-bank', label: 'Pork', icon: PiggyBank, color: 'text-pink-600' },
+  { key: 'fish', label: 'Fish', icon: Fish, color: 'text-blue-500' },
+  { key: 'beef', label: 'Beef', icon: Beef, color: 'text-red-600' },
+  { key: 'drumstick', label: 'Poultry', icon: Drumstick, color: 'text-amber-600' },
+  { key: 'croissant', label: 'Bread', icon: Croissant, color: 'text-yellow-600' },
+  { key: 'apple', label: 'Fruit', icon: Apple, color: 'text-red-500' },
+  { key: 'carrot', label: 'Veggies', icon: Carrot, color: 'text-orange-500' },
+  { key: 'pizza', label: 'Meals', icon: Pizza, color: 'text-amber-500' },
+  { key: 'ice-cream', label: 'Dessert', icon: IceCream, color: 'text-pink-400' },
+  { key: 'cookie', label: 'Sweets', icon: Cookie, color: 'text-amber-700' },
+  { key: 'soup', label: 'Soup', icon: Soup, color: 'text-yellow-700' },
+  { key: 'cup-soda', label: 'Drinks', icon: CupSoda, color: 'text-cyan-500' },
+  { key: 'milk', label: 'Dairy', icon: Milk, color: 'text-blue-400' },
+  { key: 'egg', label: 'Egg', icon: Egg, color: 'text-yellow-500' },
+  { key: 'package', label: 'Package', icon: Package, color: 'text-orange-600' },
+];
+
+const PREDEFINED_FREEZER_CATEGORIES = [
+  { name: 'Pork', icon: 'piggy-bank' },
+  { name: 'Beef', icon: 'beef' },
+  { name: 'Poultry', icon: 'drumstick' },
+  { name: 'Seafood', icon: 'fish' },
+  { name: 'Veggies', icon: 'carrot' },
+  { name: 'Fruit', icon: 'apple' },
+  { name: 'Bread & Bakery', icon: 'croissant' },
+  { name: 'Prepared Meals', icon: 'pizza' },
+  { name: 'Ice Cream & Desserts', icon: 'ice-cream' },
+  { name: 'Soups & Stews', icon: 'soup' },
+  { name: 'Sweets & Treats', icon: 'cookie' },
+  { name: 'Beverages', icon: 'cup-soda' },
+  { name: 'Dairy', icon: 'milk' },
+  { name: 'Eggs', icon: 'egg' },
+  { name: 'Other', icon: 'package' },
+];
+
+function renderCategoryIconByKey(iconKey: string, className: string = "w-5 h-5") {
+  const found = AVAILABLE_CATEGORY_ICONS.find(i => i.key === iconKey);
+  if (!found) return <Package className={`${className} text-orange-600`} />;
+  const IconComponent = found.icon;
+  return <IconComponent className={`${className} ${found.color}`} />;
+}
+
 function getCategoryIcon(categoryId: number, categories: Category[], className: string = "w-6 h-6") {
   const cat = categories.find(c => c.id === categoryId);
+  const icon = cat?.icon?.toLowerCase() || '';
   const name = cat?.name.toLowerCase() || '';
-  if (name.includes('pork')) return <PiggyBank className={`${className} text-pink-600`} />;
-  if (name.includes('seafood')) return <Fish className={`${className} text-blue-500`} />;
-  if (name.includes('beef')) return <Beef className={`${className} text-red-600`} />;
-  if (name.includes('poultry')) return <Drumstick className={`${className} text-amber-600`} />;
-  if (name.includes('bread')) return <Croissant className={`${className} text-yellow-600`} />;
-  if (name.includes('uncategorized')) return <Tag className={`${className} text-gray-500`} />;
+
+  if (icon === 'piggy-bank' || (!icon && name.includes('pork'))) return <PiggyBank className={`${className} text-pink-600`} />;
+  if (icon === 'fish' || (!icon && name.includes('seafood'))) return <Fish className={`${className} text-blue-500`} />;
+  if (icon === 'beef' || (!icon && name.includes('beef'))) return <Beef className={`${className} text-red-600`} />;
+  if (icon === 'drumstick' || (!icon && name.includes('poultry'))) return <Drumstick className={`${className} text-amber-600`} />;
+  if (icon === 'croissant' || (!icon && name.includes('bread'))) return <Croissant className={`${className} text-yellow-600`} />;
+  if (icon === 'apple' || (!icon && name.includes('fruit'))) return <Apple className={`${className} text-red-500`} />;
+  if (icon === 'carrot' || (!icon && name.includes('veg'))) return <Carrot className={`${className} text-orange-500`} />;
+  if (icon === 'pizza' || (!icon && (name.includes('pizza') || name.includes('meal')))) return <Pizza className={`${className} text-amber-500`} />;
+  if (icon === 'ice-cream' || (!icon && (name.includes('ice') || name.includes('dessert')))) return <IceCream className={`${className} text-pink-400`} />;
+  if (icon === 'cookie' || (!icon && name.includes('sweet'))) return <Cookie className={`${className} text-amber-700`} />;
+  if (icon === 'soup' || (!icon && name.includes('soup'))) return <Soup className={`${className} text-yellow-700`} />;
+  if (icon === 'cup-soda' || (!icon && name.includes('drink'))) return <CupSoda className={`${className} text-cyan-500`} />;
+  if (icon === 'milk' || (!icon && name.includes('dairy'))) return <Milk className={`${className} text-blue-400`} />;
+  if (icon === 'egg' || (!icon && name.includes('egg'))) return <Egg className={`${className} text-yellow-500`} />;
+  if (icon === 'tag' || (!icon && name.includes('uncategorized'))) return <Tag className={`${className} text-gray-500`} />;
   return <Package className={`${className} text-orange-600`} />;
 }
 
@@ -93,6 +148,11 @@ function App() {
   const [resetConfirmText, setResetConfirmText] = useState('');
 
   const [notificationModal, setNotificationModal] = useState({ isOpen: false, title: '', message: '', type: 'success' as 'success' | 'error' });
+
+  // Category Management States
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   // Category Edit Modal State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -238,6 +298,28 @@ function App() {
       loadData();
     } catch (err) {
       alert('Failed to create freezer');
+    }
+  };
+
+  const handleCreatePredefinedCategory = async (name: string, icon: string) => {
+    try {
+      await api.createCategory(name, icon);
+      setIsAddCategoryOpen(false);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to create category');
+    }
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    try {
+      await api.deleteCategory(categoryToDelete.id);
+      setIsDeleteCategoryModalOpen(false);
+      setCategoryToDelete(null);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete category');
     }
   };
 
@@ -610,6 +692,62 @@ function App() {
                 </div>
 
                 <div className="pt-8 border-t border-gray-200 mt-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-700">Manage Categories</h2>
+                      <p className="text-sm text-gray-500">Add custom categories or remove unused ones.</p>
+                    </div>
+                    <button
+                      onClick={() => setIsAddCategoryOpen(true)}
+                      className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Category
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {categories.map(c => {
+                      const itemCount = items.filter(i => i.category_id === c.id).length;
+                      const isUncategorized = c.name.toLowerCase() === 'uncategorized';
+
+                      return (
+                        <div
+                          key={c.id}
+                          className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                              {getCategoryIcon(c.id, categories)}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{c.name}</h3>
+                              <p className="text-xs text-gray-400 mt-0.5">{itemCount} item{itemCount === 1 ? '' : 's'}</p>
+                            </div>
+                          </div>
+                          {!isUncategorized && (
+                            <button
+                              onClick={() => {
+                                setCategoryToDelete(c);
+                                setIsDeleteCategoryModalOpen(true);
+                              }}
+                              disabled={itemCount > 0}
+                              className={`transition-colors p-2 rounded-lg ${
+                                itemCount > 0
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-80 group-hover:opacity-100 cursor-pointer'
+                              }`}
+                              title={itemCount > 0 ? 'Cannot delete category with items assigned to it' : 'Delete category'}
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-8 border-t border-gray-200 mt-8">
                   <h2 className="text-lg font-semibold text-gray-700 mb-4">Backup & Restore</h2>
                   <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -962,6 +1100,66 @@ function App() {
             <p className="text-sm text-gray-500">File selected: {restoreFile.name}</p>
           )}
         </div>
+      </Modal>
+
+      {/* Add Category Modal */}
+      <Modal
+        isOpen={isAddCategoryOpen}
+        onClose={() => setIsAddCategoryOpen(false)}
+        title="Add Category"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Select a freezer category to add to your inventory:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto p-1">
+            {PREDEFINED_FREEZER_CATEGORIES.map(preset => {
+              const isAlreadyAdded = categories.some(
+                c => c.name.toLowerCase() === preset.name.toLowerCase()
+              );
+              return (
+                <button
+                  key={preset.name}
+                  type="button"
+                  disabled={isAlreadyAdded}
+                  onClick={() => handleCreatePredefinedCategory(preset.name, preset.icon)}
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all cursor-pointer text-center ${
+                    isAlreadyAdded
+                      ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                      : 'border-gray-200 bg-white hover:border-cyan-500 hover:bg-cyan-50/40 text-gray-700 shadow-2xs hover:shadow-xs'
+                  }`}
+                >
+                  <div className="p-2 rounded-lg bg-gray-50 border border-gray-100 shrink-0">
+                    {renderCategoryIconByKey(preset.icon, "w-6 h-6")}
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 w-full">
+                    <span className="text-xs font-medium truncate">{preset.name}</span>
+                    {isAlreadyAdded && <span className="text-xs text-green-600 font-bold">✓</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Category Modal */}
+      <Modal
+        isOpen={isDeleteCategoryModalOpen}
+        onClose={() => setIsDeleteCategoryModalOpen(false)}
+        title="Delete Category"
+        footer={
+          <>
+            <button onClick={() => setIsDeleteCategoryModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer">Cancel</button>
+            <button onClick={confirmDeleteCategory} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 cursor-pointer">Delete</button>
+          </>
+        }
+      >
+        <p className="text-gray-600">
+          Are you sure you want to delete category <strong>{categoryToDelete?.name}</strong>?
+          <br /><br />
+          This action cannot be undone.
+        </p>
       </Modal>
 
       {/* Reset Confirmation Modal */}

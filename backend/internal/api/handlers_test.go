@@ -312,3 +312,70 @@ func TestUpdateItemsCategory(t *testing.T) {
 	}
 }
 
+func TestCategoryDeleteProtection(t *testing.T) {
+	setupTestDB()
+	r := NewRouter()
+
+	// 1. Create Category
+	catPayload, _ := json.Marshal(models.Category{Name: "Snacks"})
+	req, _ := http.NewRequest("POST", "/api/categories", bytes.NewBuffer(catPayload))
+	resp := executeRequest(req, r)
+	if resp.Code != http.StatusCreated {
+		t.Fatalf("Expected StatusCreated, got %d", resp.Code)
+	}
+	var createdCat models.Category
+	json.Unmarshal(resp.Body.Bytes(), &createdCat)
+
+	// 2. Create Freezer & Item assigned to this Category
+	freezerPayload, _ := json.Marshal(models.Freezer{Name: "Cat Test Freezer"})
+	req, _ = http.NewRequest("POST", "/api/freezers", bytes.NewBuffer(freezerPayload))
+	resp = executeRequest(req, r)
+	var createdFreezer models.Freezer
+	json.Unmarshal(resp.Body.Bytes(), &createdFreezer)
+
+	itemPayload, _ := json.Marshal(models.Item{Name: "Chips", FreezerID: createdFreezer.ID, CategoryID: createdCat.ID})
+	req, _ = http.NewRequest("POST", "/api/items", bytes.NewBuffer(itemPayload))
+	resp = executeRequest(req, r)
+	var createdItem models.Item
+	json.Unmarshal(resp.Body.Bytes(), &createdItem)
+
+	// 3. Try deleting Category with items (Should fail with 409 Conflict)
+	req, _ = http.NewRequest("DELETE", fmt.Sprintf("/api/categories/%d", createdCat.ID), nil)
+	resp = executeRequest(req, r)
+	if resp.Code != http.StatusConflict {
+		t.Errorf("Expected StatusConflict (409) when deleting category with items, got %d", resp.Code)
+	}
+
+	// 4. Delete the Item first
+	req, _ = http.NewRequest("DELETE", fmt.Sprintf("/api/items/%d", createdItem.ID), nil)
+	resp = executeRequest(req, r)
+
+	// 5. Delete Category now (Should succeed with 200 OK)
+	req, _ = http.NewRequest("DELETE", fmt.Sprintf("/api/categories/%d", createdCat.ID), nil)
+	resp = executeRequest(req, r)
+	if resp.Code != http.StatusOK {
+		t.Errorf("Expected StatusOK (200) when deleting empty category, got %d", resp.Code)
+	}
+
+	// 6. Try deleting default Uncategorized category (Should fail with 403 Forbidden)
+	req, _ = http.NewRequest("GET", "/api/categories", nil)
+	resp = executeRequest(req, r)
+	var cats []models.Category
+	json.Unmarshal(resp.Body.Bytes(), &cats)
+	var uncatID int64
+	for _, c := range cats {
+		if c.Name == "Uncategorized" {
+			uncatID = c.ID
+			break
+		}
+	}
+	if uncatID > 0 {
+		req, _ = http.NewRequest("DELETE", fmt.Sprintf("/api/categories/%d", uncatID), nil)
+		resp = executeRequest(req, r)
+		if resp.Code != http.StatusForbidden {
+			t.Errorf("Expected StatusForbidden (403) when deleting Uncategorized category, got %d", resp.Code)
+		}
+	}
+}
+
+
