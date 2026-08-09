@@ -143,9 +143,21 @@ func parseCount(v interface{}) int {
 		if val > 0 {
 			return val
 		}
+	case int64:
+		if val > 0 {
+			return int(val)
+		}
 	case string:
-		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+		valLower := strings.TrimSpace(strings.ToLower(val))
+		if parsed, err := strconv.Atoi(valLower); err == nil && parsed > 0 {
 			return parsed
+		}
+		wordCounts := map[string]int{
+			"one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+			"six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+		}
+		if c, ok := wordCounts[valLower]; ok {
+			return c
 		}
 	}
 	return 1
@@ -159,33 +171,37 @@ func generateActionSummary(toolName string, args map[string]interface{}) string 
 	switch toolName {
 	case "add_items":
 		var summaries []string
-		if items, ok := args["items"].([]interface{}); ok && len(items) > 0 {
-			for _, itemRaw := range items {
-				if itemMap, ok := itemRaw.(map[string]interface{}); ok {
-					name, _ := itemMap["name"].(string)
-					freezer, _ := itemMap["freezer_name"].(string)
-					category, _ := itemMap["category_name"].(string)
-					weight, _ := itemMap["weight"].(string)
-					count := parseCount(itemMap["count"])
+		var itemsList []map[string]interface{}
 
-					desc := fmt.Sprintf("%dx %s", count, name)
-					if weight != "" {
-						desc += fmt.Sprintf(" (%s)", weight)
-					}
-					if freezer != "" {
-						desc += fmt.Sprintf(" -> %s", freezer)
-					}
-					if category != "" {
-						desc += fmt.Sprintf(" [%s]", category)
-					}
-					summaries = append(summaries, desc)
+		if rawList, ok := args["items"].([]interface{}); ok && len(rawList) > 0 {
+			for _, r := range rawList {
+				if m, ok := r.(map[string]interface{}); ok {
+					itemsList = append(itemsList, m)
 				}
 			}
-		} else if name, ok := args["name"].(string); ok && name != "" {
-			freezer, _ := args["freezer_name"].(string)
-			category, _ := args["category_name"].(string)
-			count := parseCount(args["count"])
+		} else if rawMap, ok := args["items"].(map[string]interface{}); ok {
+			itemsList = append(itemsList, rawMap)
+		} else if args != nil {
+			itemsList = append(itemsList, args)
+		}
+
+		for _, itemMap := range itemsList {
+			name, _ := itemMap["name"].(string)
+			if name == "" {
+				name, _ = itemMap["item_name"].(string)
+			}
+			if name == "" {
+				continue
+			}
+			freezer, _ := itemMap["freezer_name"].(string)
+			category, _ := itemMap["category_name"].(string)
+			weight, _ := itemMap["weight"].(string)
+			count := parseCount(itemMap["count"])
+
 			desc := fmt.Sprintf("%dx %s", count, name)
+			if weight != "" {
+				desc += fmt.Sprintf(" (%s)", weight)
+			}
 			if freezer != "" {
 				desc += fmt.Sprintf(" -> %s", freezer)
 			}

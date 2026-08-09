@@ -221,8 +221,20 @@ func ExecuteTool(name string, args map[string]interface{}) (string, error) {
 		var itemsRaw []interface{}
 		if rawList, ok := args["items"].([]interface{}); ok && len(rawList) > 0 {
 			itemsRaw = rawList
+		} else if rawMap, ok := args["items"].(map[string]interface{}); ok {
+			itemsRaw = []interface{}{rawMap}
+		} else if rawStr, ok := args["items"].(string); ok && strings.TrimSpace(rawStr) != "" {
+			var parsedList []interface{}
+			var parsedMap map[string]interface{}
+			if err := json.Unmarshal([]byte(rawStr), &parsedList); err == nil {
+				itemsRaw = parsedList
+			} else if err := json.Unmarshal([]byte(rawStr), &parsedMap); err == nil {
+				itemsRaw = []interface{}{parsedMap}
+			}
 		} else if rawItem, ok := args["item"].(map[string]interface{}); ok {
 			itemsRaw = []interface{}{rawItem}
+		} else if rawItemList, ok := args["item"].([]interface{}); ok && len(rawItemList) > 0 {
+			itemsRaw = rawItemList
 		} else if args != nil {
 			if _, ok := args["name"]; ok {
 				itemsRaw = []interface{}{args}
@@ -298,17 +310,8 @@ func ExecuteTool(name string, args map[string]interface{}) (string, error) {
 
 			weight, _ := itemMap["weight"].(string)
 			frozenDateStr, _ := itemMap["frozen_date"].(string)
-			frozenDate := time.Now()
-			if frozenDateStr != "" {
-				if parsed, err := time.Parse("2006-01-02", frozenDateStr); err == nil {
-					frozenDate = parsed
-				}
-			}
-
-			count := 1
-			if c, ok := itemMap["count"].(float64); ok && c > 1 {
-				count = int(c)
-			}
+			frozenDate := parseFrozenDate(frozenDateStr)
+			count := parseCountValue(itemMap["count"])
 
 			for i := 0; i < count; i++ {
 				res, err := db.DB.Exec("INSERT INTO items (name, category_id, freezer_id, weight, frozen_date) VALUES (?, ?, ?, ?, ?)",
@@ -569,4 +572,68 @@ func HandleMCP(w http.ResponseWriter, r *http.Request) {
 func StrToInt64(s string) int64 {
 	val, _ := strconv.ParseInt(s, 10, 64)
 	return val
+}
+
+func parseFrozenDate(dateStr string) time.Time {
+	dateStr = strings.TrimSpace(dateStr)
+	if dateStr == "" {
+		return time.Now()
+	}
+
+	formats := []string{
+		"2006-01-02",
+		"2006/01/02",
+		"01/02/2006",
+		"1/2/2006",
+		"1/02/2006",
+		"01/2/2006",
+	}
+	for _, fmtStr := range formats {
+		if parsed, err := time.Parse(fmtStr, dateStr); err == nil {
+			return parsed
+		}
+	}
+
+	shortFormats := []string{"01/02", "1/2", "1/02", "01/2", "01-02", "1-2"}
+	currentYear := time.Now().Year()
+	for _, fmtStr := range shortFormats {
+		if parsed, err := time.Parse(fmtStr, dateStr); err == nil {
+			return time.Date(currentYear, parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.Local)
+		}
+	}
+
+	return time.Now()
+}
+
+func parseCountValue(v interface{}) int {
+	if v == nil {
+		return 1
+	}
+	switch val := v.(type) {
+	case float64:
+		if val > 0 {
+			return int(val)
+		}
+	case int:
+		if val > 0 {
+			return val
+		}
+	case int64:
+		if val > 0 {
+			return int(val)
+		}
+	case string:
+		valLower := strings.TrimSpace(strings.ToLower(val))
+		if parsed, err := strconv.Atoi(valLower); err == nil && parsed > 0 {
+			return parsed
+		}
+		wordCounts := map[string]int{
+			"one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+			"six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+		}
+		if c, ok := wordCounts[valLower]; ok {
+			return c
+		}
+	}
+	return 1
 }

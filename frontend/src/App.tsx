@@ -4,6 +4,7 @@ import { api, type Freezer, type Item, type Category } from './api';
 import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, Tag, Apple, Carrot, Pizza, IceCream, Cookie, Soup, CupSoda, Milk, Egg, Sparkles } from 'lucide-react';
 import { Modal } from './components/Modal';
 import { AIAssistantModal } from './components/AIAssistantModal';
+import { AISettingsSection } from './components/AISettingsSection';
 
 interface DateGroup {
   date: string; // YYYY-MM-DD or 'No Date'
@@ -802,6 +803,8 @@ function App() {
                     </div>
                   </div>
                 </div>
+
+                <AISettingsSection />
               </div>
             ) : (
               // Items View
@@ -1734,6 +1737,7 @@ function App() {
         isOpen={isAIModalOpen}
         onClose={() => setIsAIModalOpen(false)}
         onInventoryChanged={loadData}
+        onOpenSettings={() => setCurrentView('settings')}
       />
     </div>
   );
