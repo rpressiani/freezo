@@ -3,7 +3,7 @@ module github.com/riccardo/freezo/backend
 go 1.25.4
 
 require (
-	github.com/go-chi/chi/v5 v5.3.1
+	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/cors v1.2.2
 	modernc.org/sqlite v1.56.0
 )
