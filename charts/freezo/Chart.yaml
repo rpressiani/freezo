@@ -2,8 +2,8 @@ apiVersion: v2
 name: freezo
 description: A Helm chart for Freezer Tracker
 type: application
-version: 0.1.7
-appVersion: "v0.3.1"
+version: 0.1.8
+appVersion: "v0.3.2"
 maintainers:
   - name: rpressiani
     url: https://rpress.dev
