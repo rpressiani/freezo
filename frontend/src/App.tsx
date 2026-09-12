@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow, isToday, isYesterday, parse, format } from 'date-fns';
 import { api, type Freezer, type Item, type Category } from './api';
-import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, Tag, Apple, Carrot, Pizza, IceCream, Cookie, Soup, CupSoda, Milk, Egg } from 'lucide-react';
+import { Plus, Trash2, Snowflake, AlertCircle, ChevronDown, ChevronUp, Package, Scale, Calendar, Settings, ArrowLeft, PiggyBank, Fish, Beef, Drumstick, Croissant, CakeSlice, Tag, Apple, Carrot, Pizza, IceCream, Cookie, Soup, CupSoda, Milk, Egg } from 'lucide-react';
 import { Modal } from './components/Modal';
 
 interface DateGroup {
@@ -27,6 +27,7 @@ const AVAILABLE_CATEGORY_ICONS = [
   { key: 'beef', label: 'Beef', icon: Beef, color: 'text-red-600' },
   { key: 'drumstick', label: 'Poultry', icon: Drumstick, color: 'text-amber-600' },
   { key: 'croissant', label: 'Bread', icon: Croissant, color: 'text-yellow-600' },
+  { key: 'cake-slice', label: 'Bakery', icon: CakeSlice, color: 'text-rose-500' },
   { key: 'apple', label: 'Fruit', icon: Apple, color: 'text-red-500' },
   { key: 'carrot', label: 'Veggies', icon: Carrot, color: 'text-orange-500' },
   { key: 'pizza', label: 'Meals', icon: Pizza, color: 'text-amber-500' },
@@ -44,9 +45,10 @@ const PREDEFINED_FREEZER_CATEGORIES = [
   { name: 'Beef', icon: 'beef' },
   { name: 'Poultry', icon: 'drumstick' },
   { name: 'Seafood', icon: 'fish' },
+  { name: 'Bread', icon: 'croissant' },
+  { name: 'Bakery', icon: 'cake-slice' },
   { name: 'Veggies', icon: 'carrot' },
   { name: 'Fruit', icon: 'apple' },
-  { name: 'Bread & Bakery', icon: 'croissant' },
   { name: 'Prepared Meals', icon: 'pizza' },
   { name: 'Ice Cream & Desserts', icon: 'ice-cream' },
   { name: 'Soups & Stews', icon: 'soup' },
@@ -74,6 +76,7 @@ function getCategoryIcon(categoryId: number, categories: Category[], className: 
   if (icon === 'beef' || (!icon && name.includes('beef'))) return <Beef className={`${className} text-red-600`} />;
   if (icon === 'drumstick' || (!icon && name.includes('poultry'))) return <Drumstick className={`${className} text-amber-600`} />;
   if (icon === 'croissant' || (!icon && name.includes('bread'))) return <Croissant className={`${className} text-yellow-600`} />;
+  if (icon === 'cake-slice' || (!icon && name.includes('bakery'))) return <CakeSlice className={`${className} text-rose-500`} />;
   if (icon === 'apple' || (!icon && name.includes('fruit'))) return <Apple className={`${className} text-red-500`} />;
   if (icon === 'carrot' || (!icon && name.includes('veg'))) return <Carrot className={`${className} text-orange-500`} />;
   if (icon === 'pizza' || (!icon && (name.includes('pizza') || name.includes('meal')))) return <Pizza className={`${className} text-amber-500`} />;

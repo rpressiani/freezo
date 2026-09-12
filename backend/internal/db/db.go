@@ -79,6 +79,18 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	// Migration: Migrate any legacy "Bread & Bakery" category to "Bakery"
+	var breadBakeryID int
+	if err := DB.QueryRow("SELECT id FROM categories WHERE name = 'Bread & Bakery'").Scan(&breadBakeryID); err == nil {
+		var bakeryID int
+		if err := DB.QueryRow("SELECT id FROM categories WHERE name = 'Bakery'").Scan(&bakeryID); err == sql.ErrNoRows {
+			_, _ = DB.Exec("UPDATE categories SET name = 'Bakery', icon = 'cake-slice' WHERE id = ?", breadBakeryID)
+		} else if err == nil {
+			_, _ = DB.Exec("UPDATE items SET category_id = ? WHERE category_id = ?", bakeryID, breadBakeryID)
+			_, _ = DB.Exec("DELETE FROM categories WHERE id = ?", breadBakeryID)
+		}
+	}
+
 	seedData()
 }
 
