@@ -11,7 +11,7 @@ A simple, self-hosted application to track food inventory in your freezers. Buil
 - **Freezer & Location Management**: Create and manage multiple virtual freezers (e.g., Kitchen Freezer, Garage Deep Freeze).
 - **Categories & Icons**: Organize food items into default categories (*Pork, Seafood, Beef, Poultry, Bread, Uncategorized*) or create custom categories with custom icons.
 - **Category & Freezer Filtering**: Quickly filter your inventory by freezer or category.
-- **Inventory Tracking**: Track items by name, quantity, weight, category, and frozen date (defaults automatically to today's date).
+- **Inventory Tracking**: Track items by name, quantity, weight, category, and frozen date (defaults automatically to today's date, or mark as unknown to prioritize for consumption).
 - **Smart Grouping**: Group identical items automatically with batch consume and deduct capabilities.
 - **Quick Transfers**: Move items between freezers with partial quantity support by clicking freezer badges or using the Move action.
 - **Database Backup & Restore**: Export timestamped database backups (`freezo_backup_YYYY-MM-DD_HH-MM-SS.db`), restore from snapshots, or perform database resets.

@@ -7,7 +7,7 @@ Freezo allows you to:
 - **Manage Multiple Freezers:** Create separate virtual freezers to track items in different physical spaces (e.g., Garage Freezer, Kitchen Freezer).
 - **Categories & Custom Icons:** Categorize items into pre-seeded categories (*Beef, Pork, Poultry, Seafood, Bread, Uncategorized*) or create custom categories with tailored icons.
 - **Filter Inventory:** Filter items dynamically by freezer or category.
-- **Track Inventory & Frozen Dates:** Log items with quantity, weight, category, and frozen date (which defaults automatically to today's date). Identical items in the same freezer are automatically grouped.
+- **Track Inventory & Frozen Dates:** Log items with quantity, weight, category, and frozen date (which defaults automatically to today's date, or can be marked as unknown). Identical items in the same freezer are automatically grouped, and unknown or older dates are prioritized at the top of items to consume first.
 - **Move & Change Category:** Seamlessly move items between freezers (by clicking freezer badges or using the Move button) and change item categories on the fly.
 - **Consume & Deduct Items:** Remove items completely or deduct specific quantities when using food from your freezer.
 - **Backup & Restore:** Export timestamped SQLite backups (`freezo_backup_YYYY-MM-DD_HH-MM-SS.db`), restore snapshots, or reset your data.
@@ -21,7 +21,7 @@ Freezo allows you to:
    In **Settings**, under **Category Management**, you can add new custom categories with your choice of icons (piggy bank, fish, beef, drumstick, croissant, tag, pizza, apple, etc.) or delete custom categories.
 
 3. **Add Items:** 
-   Click the `+` button in the bottom right corner (or top menu action). Select the target freezer, choose an item name (utilize autocomplete suggestions), select a category, specify weight, frozen date (defaults to today), and set the quantity.
+   Click the `+` button in the bottom right corner (or top menu action). Select the target freezer, choose an item name (utilize autocomplete suggestions), select a category, specify weight, set the frozen date (defaults to today or check **Mark as unknown** to prioritize to consume first), and set the quantity.
 
 4. **Filter Inventory:**
    Use the top filter bar on the inventory screen to filter items by specific freezers or categories for quick access.

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/riccardo/freezo/backend/internal/db"
@@ -375,6 +376,106 @@ func TestCategoryDeleteProtection(t *testing.T) {
 		if resp.Code != http.StatusForbidden {
 			t.Errorf("Expected StatusForbidden (403) when deleting Uncategorized category, got %d", resp.Code)
 		}
+	}
+}
+
+func TestItemsWithUnknownFrozenDate(t *testing.T) {
+	setupTestDB()
+	r := NewRouter()
+
+	// 1. Create Freezer
+	f := models.Freezer{Name: "Deep Freeze"}
+	fPayload, _ := json.Marshal(f)
+	req, _ := http.NewRequest("POST", "/api/freezers", bytes.NewBuffer(fPayload))
+	resp := executeRequest(req, r)
+	if resp.Code != http.StatusCreated {
+		t.Fatalf("Failed to create freezer: %d", resp.Code)
+	}
+	var createdFreezer models.Freezer
+	json.Unmarshal(resp.Body.Bytes(), &createdFreezer)
+
+	// 2. Create item with known date
+	knownDate := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	knownItem := models.Item{
+		Name:       "Ground Beef",
+		FreezerID:  createdFreezer.ID,
+		CategoryID: 1,
+		FrozenDate: &knownDate,
+	}
+	payload, _ := json.Marshal(knownItem)
+	req, _ = http.NewRequest("POST", "/api/items", bytes.NewBuffer(payload))
+	resp = executeRequest(req, r)
+	if resp.Code != http.StatusCreated {
+		t.Fatalf("Failed to create item with known date: %d", resp.Code)
+	}
+
+	// 3. Create item with unknown/nil date
+	unknownItem := models.Item{
+		Name:       "Pork Chops",
+		FreezerID:  createdFreezer.ID,
+		CategoryID: 1,
+		FrozenDate: nil,
+	}
+	payload, _ = json.Marshal(unknownItem)
+	req, _ = http.NewRequest("POST", "/api/items", bytes.NewBuffer(payload))
+	resp = executeRequest(req, r)
+	if resp.Code != http.StatusCreated {
+		t.Fatalf("Failed to create item with unknown date: %d", resp.Code)
+	}
+
+	// 4. Fetch items and verify
+	req, _ = http.NewRequest("GET", "/api/items", nil)
+	resp = executeRequest(req, r)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("Failed to get items: %d", resp.Code)
+	}
+
+	var items []models.Item
+	json.Unmarshal(resp.Body.Bytes(), &items)
+	if len(items) != 2 {
+		t.Fatalf("Expected 2 items, got %d", len(items))
+	}
+
+	var foundKnown, foundUnknown bool
+	for _, it := range items {
+		if it.Name == "Ground Beef" {
+			foundKnown = true
+			if it.FrozenDate == nil {
+				t.Errorf("Expected Ground Beef to have a frozen date, got nil")
+			} else if !it.FrozenDate.Equal(knownDate) {
+				t.Errorf("Expected %v, got %v", knownDate, *it.FrozenDate)
+			}
+		}
+		if it.Name == "Pork Chops" {
+			foundUnknown = true
+			if it.FrozenDate != nil {
+				t.Errorf("Expected Pork Chops to have nil frozen date, got %v", *it.FrozenDate)
+			}
+		}
+	}
+
+	if !foundKnown || !foundUnknown {
+		t.Errorf("Failed to find both items in GET /api/items")
+	}
+
+	// 5. Test batch create with unknown date
+	batch := []models.Item{
+		{Name: "Mystery Item 1", FreezerID: createdFreezer.ID, CategoryID: 1, FrozenDate: nil},
+		{Name: "Mystery Item 2", FreezerID: createdFreezer.ID, CategoryID: 1, FrozenDate: &knownDate},
+	}
+	batchPayload, _ := json.Marshal(batch)
+	req, _ = http.NewRequest("POST", "/api/items/batch", bytes.NewBuffer(batchPayload))
+	resp = executeRequest(req, r)
+	if resp.Code != http.StatusCreated {
+		t.Fatalf("Failed to batch create items: %d", resp.Code)
+	}
+
+	// 6. Test updating an item's date to nil (unknown)
+	updatePayload := []byte(`{"name":"Ground Beef Updated","category_id":1,"freezer_id":` + fmt.Sprintf("%d", createdFreezer.ID) + `,"frozen_date":null}`)
+	req, _ = http.NewRequest("PUT", fmt.Sprintf("/api/items/%d", items[0].ID), bytes.NewBuffer(updatePayload))
+	resp = executeRequest(req, r)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("Failed to update item to unknown date: %d, body: %s", resp.Code, resp.Body.String())
 	}
 }
 

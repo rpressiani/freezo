@@ -20,8 +20,8 @@ type Item struct {
 	Name       string    `json:"name"`
 	CategoryID int64     `json:"category_id"`
 	FreezerID  int64     `json:"freezer_id"`
-	Weight     string    `json:"weight,omitempty"`
-	FrozenDate time.Time `json:"frozen_date"`
-	CreatedAt  time.Time `json:"created_at"`
+	Weight     string     `json:"weight,omitempty"`
+	FrozenDate *time.Time `json:"frozen_date,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }

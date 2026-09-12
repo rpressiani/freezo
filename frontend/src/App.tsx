@@ -88,13 +88,18 @@ function getCategoryIcon(categoryId: number, categories: Category[], className: 
 }
 
 function getRelativeTime(dateStr: string): string {
-  // Parse YYYY-MM-DD as local date to ensure isToday/isYesterday work correctly with local timeframe
-  const created = parse(dateStr, 'yyyy-MM-dd', new Date());
+  if (!dateStr || dateStr === 'Unknown' || dateStr === 'No Date') return '';
+  try {
+    // Parse YYYY-MM-DD as local date to ensure isToday/isYesterday work correctly with local timeframe
+    const created = parse(dateStr, 'yyyy-MM-dd', new Date());
+    if (isNaN(created.getTime())) return '';
+    if (isToday(created)) return 'Today';
+    if (isYesterday(created)) return 'Yesterday';
 
-  if (isToday(created)) return 'Today';
-  if (isYesterday(created)) return 'Yesterday';
-
-  return formatDistanceToNow(created, { addSuffix: true });
+    return formatDistanceToNow(created, { addSuffix: true });
+  } catch {
+    return '';
+  }
 }
 
 function App() {
@@ -176,6 +181,7 @@ function App() {
     freezerId: 0,
     categoryId: 1,
     frozenDate: format(new Date(), 'yyyy-MM-dd'),
+    isDateUnknown: false,
     weightMode: 'none' as WeightMode,
     commonWeight: '',
     individualWeights: [] as string[],
@@ -213,7 +219,7 @@ function App() {
       acc[item.name] = { name: item.name, totalQuantity: 0, dateGroups: [], categoryId: item.category_id };
     }
 
-    const dateKey = item.frozen_date ? item.frozen_date.split('T')[0] : 'No Date';
+    const dateKey = (!item.frozen_date || item.frozen_date.startsWith('0001-01-01')) ? 'Unknown' : item.frozen_date.split('T')[0];
     let dateGroup = acc[item.name].dateGroups.find(g => g.date === dateKey && g.freezerId === item.freezer_id);
 
     if (!dateGroup) {
@@ -229,13 +235,37 @@ function App() {
   }, {} as Record<string, ItemGroup>)).map(group => ({
     ...group,
     dateGroups: group.dateGroups.sort((a, b) => {
+      const aIsUnknown = a.date === 'Unknown' || a.date === 'No Date';
+      const bIsUnknown = b.date === 'Unknown' || b.date === 'No Date';
+      if (aIsUnknown && !bIsUnknown) return -1;
+      if (!aIsUnknown && bIsUnknown) return 1;
+      if (aIsUnknown && bIsUnknown) {
+        const f1 = freezers.find(f => f.id === a.freezerId)?.name || '';
+        const f2 = freezers.find(f => f.id === b.freezerId)?.name || '';
+        return f1.localeCompare(f2);
+      }
+
       const dateDiff = a.date.localeCompare(b.date);
       if (dateDiff !== 0) return dateDiff;
       const f1 = freezers.find(f => f.id === a.freezerId)?.name || '';
       const f2 = freezers.find(f => f.id === b.freezerId)?.name || '';
       return f1.localeCompare(f2);
     })
-  }));
+  })).sort((a, b) => {
+    // Sort item groups so items to consume first (unknown dates first, then oldest dates) show up top
+    const aEarliest = a.dateGroups[0]?.date || '';
+    const bEarliest = b.dateGroups[0]?.date || '';
+    const aIsUnknown = aEarliest === 'Unknown' || aEarliest === 'No Date';
+    const bIsUnknown = bEarliest === 'Unknown' || bEarliest === 'No Date';
+
+    if (aIsUnknown && !bIsUnknown) return -1;
+    if (!aIsUnknown && bIsUnknown) return 1;
+    if (!aIsUnknown && !bIsUnknown && aEarliest && bEarliest) {
+      const dateDiff = aEarliest.localeCompare(bEarliest);
+      if (dateDiff !== 0) return dateDiff;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
   const toggleGroup = (name: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -278,6 +308,7 @@ function App() {
       freezerId: freezers[0].id,
       categoryId: catId,
       frozenDate: format(new Date(), 'yyyy-MM-dd'),
+      isDateUnknown: false,
       weightMode: 'none',
       commonWeight: '',
       individualWeights: [''],
@@ -418,7 +449,7 @@ function App() {
           category_id: itemForm.categoryId,
           freezer_id: itemForm.freezerId,
           weight: weight || undefined,
-          frozen_date: itemForm.frozenDate ? new Date(itemForm.frozenDate).toISOString() : undefined,
+          frozen_date: (!itemForm.isDateUnknown && itemForm.frozenDate) ? new Date(itemForm.frozenDate).toISOString() : undefined,
         });
       }
 
@@ -896,7 +927,14 @@ function App() {
                           {getCategoryIcon(group.categoryId, categories)}
                         </button>
                         <div>
-                          <h3 className="font-semibold text-lg">{group.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-lg">{group.name}</h3>
+                            {group.dateGroups.some(d => d.date === 'Unknown' || d.date === 'No Date') && (
+                              <span className="text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full shadow-2xs">
+                                Consume first
+                              </span>
+                            )}
+                          </div>
                           <p className="text-gray-500 text-sm">{group.totalQuantity} total items</p>
                         </div>
                       </div>
@@ -919,71 +957,83 @@ function App() {
 
                     {expandedGroups.has(group.name) && (
                       <div className="border-t border-gray-100 bg-gray-50/50">
-                        {group.dateGroups.map(dateGroup => (
-                          <div key={dateGroup.date} className="p-4 border-b border-gray-100 last:border-0 hover:bg-white transition-colors">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                              {/* Left Side: Date & Details */}
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-1">
+                        {group.dateGroups.map(dateGroup => {
+                          const isUnknown = dateGroup.date === 'Unknown' || dateGroup.date === 'No Date';
+                          return (
+                            <div key={`${dateGroup.date}-${dateGroup.freezerId}`} className="p-4 border-b border-gray-100 last:border-0 hover:bg-white transition-colors">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                {/* Left Side: Date & Details */}
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-1">
 
-                                {/* Date Section */}
-                                <div className="flex items-center gap-2 text-sm text-gray-600 sm:w-48 shrink-0">
-                                  <div className="bg-gray-100 p-1.5 rounded-md">
-                                    <Calendar className="w-4 h-4 text-gray-500" />
+                                  {/* Date Section */}
+                                  <div className="flex items-center gap-2 text-sm text-gray-600 sm:w-48 shrink-0">
+                                    <div className={`p-1.5 rounded-md ${isUnknown ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      <Calendar className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      {isUnknown ? (
+                                        <>
+                                          <span className="font-semibold text-amber-900">Unknown Date</span>
+                                          <span className="text-xs font-semibold text-amber-600">
+                                            Consume first
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="font-medium text-gray-900">{dateGroup.date}</span>
+                                          <span className="text-xs text-gray-500">
+                                            {getRelativeTime(dateGroup.date)}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="flex flex-col">
-                                    <span className="font-medium text-gray-900">{dateGroup.date}</span>
-                                    {dateGroup.date !== 'No Date' && (
-                                      <span className="text-xs text-gray-500">
-                                        {getRelativeTime(dateGroup.date)}
+
+                                  {/* Details Row (Qty, Weight, Freezer) */}
+                                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
+
+                                    {/* Quantity */}
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-gray-900 text-base">{dateGroup.totalQuantity}x</span>
+                                      <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Qty</span>
+                                    </div>
+
+                                    {/* Weight */}
+                                    <div className="flex items-center gap-2">
+                                      <Scale className="w-4 h-4 text-gray-400" />
+                                      <span className="text-gray-700">
+                                        {Array.from(new Set(dateGroup.items.map(i => i.weight || 'No Weight'))).join(', ')}
                                       </span>
-                                    )}
+                                    </div>
+
+                                    <button
+                                      onClick={() => openMoveModal(dateGroup.items)}
+                                      className="flex items-center gap-2 px-2.5 py-1.5 -mx-2 rounded-lg bg-cyan-50/50 border border-transparent hover:bg-cyan-100 hover:border-cyan-200 text-cyan-700 transition-all cursor-pointer group shadow-sm hover:shadow"
+                                      title="Move items to another freezer"
+                                    >
+                                      <Snowflake className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+                                      <span
+                                        className="font-medium truncate max-w-[150px]"
+                                      >
+                                        {freezers.find(f => f.id === dateGroup.freezerId)?.name || 'Unknown'}
+                                      </span>
+                                    </button>
                                   </div>
                                 </div>
 
-                                {/* Details Row (Qty, Weight, Freezer) */}
-                                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
-
-                                  {/* Quantity */}
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-gray-900 text-base">{dateGroup.totalQuantity}x</span>
-                                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Qty</span>
-                                  </div>
-
-                                  {/* Weight */}
-                                  <div className="flex items-center gap-2">
-                                    <Scale className="w-4 h-4 text-gray-400" />
-                                    <span className="text-gray-700">
-                                      {Array.from(new Set(dateGroup.items.map(i => i.weight || 'No Weight'))).join(', ')}
-                                    </span>
-                                  </div>
-
+                                {/* Right Side: Action Button */}
+                                <div className="flex justify-end sm:block pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-50 sm:border-none">
                                   <button
-                                    onClick={() => openMoveModal(dateGroup.items)}
-                                    className="flex items-center gap-2 px-2.5 py-1.5 -mx-2 rounded-lg bg-cyan-50/50 border border-transparent hover:bg-cyan-100 hover:border-cyan-200 text-cyan-700 transition-all cursor-pointer group shadow-sm hover:shadow"
-                                    title="Move items to another freezer"
+                                    onClick={() => openConsumeModal(dateGroup)}
+                                    className="text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors w-full sm:w-auto text-center"
                                   >
-                                    <Snowflake className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
-                                    <span
-                                      className="font-medium truncate max-w-[150px]"
-                                    >
-                                      {freezers.find(f => f.id === dateGroup.freezerId)?.name || 'Unknown'}
-                                    </span>
+                                    Consume
                                   </button>
                                 </div>
                               </div>
-
-                              {/* Right Side: Action Button */}
-                              <div className="flex justify-end sm:block pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-50 sm:border-none">
-                                <button
-                                  onClick={() => openConsumeModal(dateGroup)}
-                                  className="text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors w-full sm:w-auto text-center"
-                                >
-                                  Consume
-                                </button>
-                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1425,13 +1475,30 @@ function App() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date Frozen</label>
-            <input
-              type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-              value={itemForm.frozenDate}
-              onChange={e => setItemForm({ ...itemForm, frozenDate: e.target.value })}
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-gray-700">Date Frozen</label>
+              <label className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={itemForm.isDateUnknown}
+                  onChange={e => setItemForm({ ...itemForm, isDateUnknown: e.target.checked })}
+                  className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500 cursor-pointer w-4 h-4"
+                />
+                Mark as unknown
+              </label>
+            </div>
+            {itemForm.isDateUnknown ? (
+              <div className="w-full px-3 py-2.5 border border-dashed border-amber-300 bg-amber-50/70 rounded-lg text-sm text-amber-800 font-medium">
+                Frozen date marked as unknown
+              </div>
+            ) : (
+              <input
+                type="date"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+                value={itemForm.frozenDate}
+                onChange={e => setItemForm({ ...itemForm, frozenDate: e.target.value })}
+              />
+            )}
           </div>
 
           <div className="border-t border-gray-100 pt-4">

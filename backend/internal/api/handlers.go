@@ -107,8 +107,8 @@ func GetItems(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if frozenDate.Valid {
-			i.FrozenDate = frozenDate.Time
+		if frozenDate.Valid && !frozenDate.Time.IsZero() && frozenDate.Time.Year() > 1 {
+			i.FrozenDate = &frozenDate.Time
 		}
 		if weight.Valid {
 			i.Weight = weight.String

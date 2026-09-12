@@ -9,7 +9,7 @@ export interface Item {
     category_id: number;
     freezer_id: number;
     weight?: string;
-    frozen_date?: string;
+    frozen_date?: string | null;
 }
 export interface Category {
     id: number;
