@@ -12,7 +12,7 @@ RUN npm run build
 # Serve stage
 FROM nginx:alpine
 
-RUN apk upgrade --no-cache libpng zlib
+RUN apk upgrade --no-cache
 
 COPY --from=build /app/dist /usr/share/nginx/html
 
