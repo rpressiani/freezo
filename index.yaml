@@ -2,6 +2,19 @@ apiVersion: v1
 entries:
   freezo:
   - apiVersion: v2
+    appVersion: v0.4.0
+    created: "2026-09-12T00:41:05.979883418Z"
+    description: A Helm chart for Freezer Tracker
+    digest: f30fa60ca4d6697a47c0860f927f8b8edeef3c0c960c0dcb54d1dd19d6c440aa
+    maintainers:
+    - name: rpressiani
+      url: https://rpress.dev
+    name: freezo
+    type: application
+    urls:
+    - https://github.com/rpressiani/freezo/releases/download/freezo-0.1.9/freezo-0.1.9.tgz
+    version: 0.1.9
+  - apiVersion: v2
     appVersion: v0.3.2
     created: "2026-09-12T00:11:03.19817499Z"
     description: A Helm chart for Freezer Tracker
@@ -89,4 +102,4 @@ entries:
     urls:
     - https://github.com/rpressiani/freezo/releases/download/freezo-0.1.2/freezo-0.1.2.tgz
     version: 0.1.2
-generated: "2026-09-12T00:11:03.198193989Z"
+generated: "2026-09-12T00:41:05.979916269Z"
