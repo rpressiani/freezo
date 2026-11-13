@@ -25,6 +25,13 @@ spec:
                 name: {{ include "freezo.fullname" $ }}-backend
                 port:
                   number: {{ $.Values.service.backendPort }}
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "freezo.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.service.backendPort }}
           - path: /
             pathType: Prefix
             backend:

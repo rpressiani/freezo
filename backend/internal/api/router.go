@@ -4,6 +4,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/riccardo/freezo/backend/internal/mcpserver"
 )
 
 func NewRouter() *chi.Mux {
@@ -19,6 +20,8 @@ func NewRouter() *chi.Mux {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	r.Handle("/mcp", mcpserver.NewHTTPHandler())
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/freezers", func(r chi.Router) {
