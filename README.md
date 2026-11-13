@@ -15,6 +15,7 @@ A simple, self-hosted application to track food inventory in your freezers. Buil
 - **Smart Grouping**: Group identical items automatically with batch consume and deduct capabilities.
 - **Quick Transfers**: Move items between freezers with partial quantity support by clicking freezer badges or using the Move action.
 - **Database Backup & Restore**: Export timestamped database backups (`freezo_backup_YYYY-MM-DD_HH-MM-SS.db`), restore from snapshots, or perform database resets.
+- **MCP Server**: Built-in Model Context Protocol (MCP) server exposed at `/mcp` (Streamable HTTP) for AI assistants to query, add, consume, and move inventory.
 - **Responsive UI**: Sleek, mobile-friendly interface built with React, Vite, and Lucide icons.
 
 ## Architecture
