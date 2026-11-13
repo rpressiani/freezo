@@ -5,6 +5,7 @@
 *.swp
 
 # Go / Backend
+backend/backend
 backend/server
 backend/*.exe
 backend/*.exe~
